@@ -4,7 +4,7 @@ export interface User {
   email: string;
   full_name?: string;
   name?: string; // Legacy support
-  role: 'admin' | 'instructor' | 'student';
+  role: 'ADMIN' | 'INSTRUCTOR' | 'LEARNER';
   is_active: boolean;
   total_points?: number;
   enrolled_courses?: number;
@@ -16,13 +16,13 @@ export interface UserCreate {
   email: string;
   password: string;
   full_name?: string;
-  role?: 'admin' | 'instructor' | 'student';
+  role?: 'ADMIN' | 'INSTRUCTOR' | 'LEARNER';
 }
 
 export interface UserUpdate {
   full_name?: string;
   password?: string;
-  role?: 'admin' | 'instructor' | 'student';
+  role?: 'ADMIN' | 'INSTRUCTOR' | 'LEARNER';
   is_active?: boolean;
 }
 

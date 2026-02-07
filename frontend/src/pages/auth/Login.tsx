@@ -28,7 +28,7 @@ const Login: React.FC = () => {
 
     try {
       const user = await login({ email, password });
-      if (user.role === 'admin') {
+      if (user.role === 'ADMIN') {
         navigate('/admin/dashboard');
       } else {
         navigate('/student/dashboard');
@@ -56,7 +56,7 @@ const Login: React.FC = () => {
             <GraduationCap size={32} color="white" />
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 mb-2">
-            {role === 'admin' ? 'Admin Sign In' : role === 'learner' ? 'Student Sign In' : 'Sign In to Your Account'}
+            {role === 'ADMIN' ? 'Admin Sign In' : role === 'LEARNER' ? 'Student Sign In' : 'Sign In to Your Account'}
           </h1>
           <p className="text-slate-500 font-medium">
             Welcome back to the Learning Portal

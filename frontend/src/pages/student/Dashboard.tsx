@@ -44,6 +44,14 @@ const Dashboard: React.FC = () => {
     };
 
     fetchMyCourses();
+
+    // Auto-refresh courses when window gains focus
+    const handleFocus = () => {
+      fetchMyCourses();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
   const getInitials = (name: string) => {

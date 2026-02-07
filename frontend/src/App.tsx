@@ -55,7 +55,7 @@ const queryClient = new QueryClient({
 });
 
 // Protected Route Component
-const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRole?: 'admin' | 'instructor' | 'student' }> = ({ children, allowedRole }) => {
+const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRole?: 'ADMIN' | 'INSTRUCTOR' | 'LEARNER' }> = ({ children, allowedRole }) => {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -68,19 +68,19 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRole?: 'admin
 
   if (allowedRole) {
     // Admin can access everything
-    if (user.role === 'admin') {
+    if (user.role === 'ADMIN') {
       return <>{children}</>;
     }
     // Instructor can access instructor and student pages
-    if (user.role === 'instructor' && (allowedRole === 'instructor' || allowedRole === 'student')) {
+    if (user.role === 'INSTRUCTOR' && (allowedRole === 'INSTRUCTOR' || allowedRole === 'LEARNER')) {
       return <>{children}</>;
     }
     // Student can only access student pages
-    if (user.role === 'student' && allowedRole === 'student') {
+    if (user.role === 'LEARNER' && allowedRole === 'LEARNER') {
       return <>{children}</>;
     }
     // Redirect to appropriate dashboard if role doesn't match
-    if (user.role === 'admin' || user.role === 'instructor') {
+    if (user.role === 'ADMIN' || user.role === 'INSTRUCTOR') {
       return <Navigate to="/admin/dashboard" replace />;
     } else {
       return <Navigate to="/student/dashboard" replace />;
@@ -102,7 +102,7 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
 
   if (user) {
-    if (user.role === 'admin' || user.role === 'instructor') {
+    if (user.role === 'ADMIN' || user.role === 'INSTRUCTOR') {
       return <Navigate to="/admin/dashboard" replace />;
     } else {
       return <Navigate to="/student/dashboard" replace />;
@@ -158,130 +158,130 @@ function App() {
               } />
 
               <Route path="/admin/dashboard" element={
-                <ProtectedRoute allowedRole="admin">
+                <ProtectedRoute allowedRole="ADMIN">
                   <AdminDashboard />
                 </ProtectedRoute>
               } />
 
               {/* Legacy editor routes - redirect to new structure */}
               <Route path="/admin/course/create" element={
-                <ProtectedRoute allowedRole="admin">
+                <ProtectedRoute allowedRole="ADMIN">
                   <Navigate to="/admin/courses/new" replace />
                 </ProtectedRoute>
               } />
 
               <Route path="/admin/course/content/edit" element={
-                <ProtectedRoute allowedRole="admin">
+                <ProtectedRoute allowedRole="ADMIN">
                   <ContentEditor />
                 </ProtectedRoute>
               } />
 
               {/* Admin - Course Management */}
               <Route path="/admin/courses" element={
-                <ProtectedRoute allowedRole="admin">
+                <ProtectedRoute allowedRole="ADMIN">
                   <CourseList />
                 </ProtectedRoute>
               } />
               <Route path="/admin/courses/new" element={
-                <ProtectedRoute allowedRole="admin">
+                <ProtectedRoute allowedRole="ADMIN">
                   <CourseForm />
                 </ProtectedRoute>
               } />
               <Route path="/admin/courses/:courseId/edit" element={
-                <ProtectedRoute allowedRole="admin">
+                <ProtectedRoute allowedRole="ADMIN">
                   <CourseForm />
                 </ProtectedRoute>
               } />
 
               {/* Admin - Lesson Management */}
               <Route path="/admin/courses/:courseId/lessons" element={
-                <ProtectedRoute allowedRole="admin">
+                <ProtectedRoute allowedRole="ADMIN">
                   <LessonList />
                 </ProtectedRoute>
               } />
               <Route path="/admin/courses/:courseId/lessons/new" element={
-                <ProtectedRoute allowedRole="admin">
+                <ProtectedRoute allowedRole="ADMIN">
                   <LessonForm />
                 </ProtectedRoute>
               } />
               <Route path="/admin/courses/:courseId/lessons/:lessonId/edit" element={
-                <ProtectedRoute allowedRole="admin">
+                <ProtectedRoute allowedRole="ADMIN">
                   <LessonForm />
                 </ProtectedRoute>
               } />
 
               {/* Admin - Quiz Management */}
               <Route path="/admin/courses/:courseId/quizzes" element={
-                <ProtectedRoute allowedRole="admin">
+                <ProtectedRoute allowedRole="ADMIN">
                   <QuizList />
                 </ProtectedRoute>
               } />
               <Route path="/admin/courses/:courseId/quizzes/new" element={
-                <ProtectedRoute allowedRole="admin">
+                <ProtectedRoute allowedRole="ADMIN">
                   <QuizBuilder />
                 </ProtectedRoute>
               } />
               <Route path="/admin/courses/:courseId/quizzes/:quizId/edit" element={
-                <ProtectedRoute allowedRole="admin">
+                <ProtectedRoute allowedRole="ADMIN">
                   <QuizBuilder />
                 </ProtectedRoute>
               } />
 
               {/* Legacy quiz route - redirect to new structure */}
               <Route path="/admin/course/quiz/new" element={
-                <ProtectedRoute allowedRole="admin">
+                <ProtectedRoute allowedRole="ADMIN">
                   <QuizEditor />
                 </ProtectedRoute>
               } />
 
               {/* Admin - RAG Generation */}
               <Route path="/admin/rag" element={
-                <ProtectedRoute allowedRole="admin">
+                <ProtectedRoute allowedRole="ADMIN">
                   <RAGDashboard />
                 </ProtectedRoute>
               } />
               <Route path="/admin/rag/documents" element={
-                <ProtectedRoute allowedRole="admin">
+                <ProtectedRoute allowedRole="ADMIN">
                   <DocumentUpload />
                 </ProtectedRoute>
               } />
               <Route path="/admin/rag/generate" element={
-                <ProtectedRoute allowedRole="admin">
+                <ProtectedRoute allowedRole="ADMIN">
                   <GenerationWizard />
                 </ProtectedRoute>
               } />
               <Route path="/admin/rag/jobs/:jobId" element={
-                <ProtectedRoute allowedRole="admin">
+                <ProtectedRoute allowedRole="ADMIN">
                   <JobMonitor />
                 </ProtectedRoute>
               } />
 
               {/* Admin - User Management */}
               <Route path="/admin/users" element={
-                <ProtectedRoute allowedRole="admin">
+                <ProtectedRoute allowedRole="ADMIN">
                   <UserList />
                 </ProtectedRoute>
               } />
               <Route path="/admin/users/new" element={
-                <ProtectedRoute allowedRole="admin">
+                <ProtectedRoute allowedRole="ADMIN">
                   <UserForm />
                 </ProtectedRoute>
               } />
               <Route path="/admin/users/:userId/edit" element={
-                <ProtectedRoute allowedRole="admin">
+                <ProtectedRoute allowedRole="ADMIN">
                   <UserForm />
                 </ProtectedRoute>
               } />
 
               {/* Admin Settings & Reporting */}
               <Route path="/admin/settings" element={
-                <ProtectedRoute allowedRole="admin">
+                <ProtectedRoute allowedRole="ADMIN">
                   <AdminSettings />
                 </ProtectedRoute>
               } />
 
               <Route path="/admin/reporting" element={
-                <ProtectedRoute allowedRole="admin">
+                <ProtectedRoute allowedRole="ADMIN">
                   <CourseReportingDashboard />
                 </ProtectedRoute>
               } />
@@ -301,10 +301,17 @@ function App() {
                 </ProtectedRoute>
               } />
 
-              {/* Placeholder routes for future pages */}
+              {/* Student - Course Browsing and Access */}
               <Route path="/student/courses" element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRole="LEARNER">
                   <BrowseCourses />
+                </ProtectedRoute>
+              } />
+              
+              {/* Student - Quiz Taking */}
+              <Route path="/student/course/:courseId/quiz/:quizId" element={
+                <ProtectedRoute allowedRole="LEARNER">
+                  <LessonView />
                 </ProtectedRoute>
               } />
 

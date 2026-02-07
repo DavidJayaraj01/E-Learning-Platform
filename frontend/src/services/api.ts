@@ -50,6 +50,8 @@ async function apiRequest<T>(
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache',
     ...(token && { Authorization: `Bearer ${token}` }),
     ...options.headers,
   };
@@ -57,6 +59,7 @@ async function apiRequest<T>(
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,
+    cache: 'no-store', // Disable browser caching for fresh data
   });
 
   if (!response.ok) {
@@ -131,7 +134,7 @@ export const authApi = {
   },
 
   async getProfile(): Promise<User> {
-    return apiRequest<User>('/users/me');
+    return apiRequest<User>('/auth/profile');
   },
 
   logout(): void {

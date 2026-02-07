@@ -12,6 +12,14 @@ export default function BrowseCourses() {
 
   useEffect(() => {
     loadCourses();
+
+    // Auto-refresh courses when window gains focus
+    const handleFocus = () => {
+      loadCourses();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
   const loadCourses = async () => {

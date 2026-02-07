@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
     Search,
     Moon,
@@ -13,93 +13,176 @@ import {
     ChevronLeft,
     Star,
     PenSquare,
-    User
+    User,
+    BookOpen,
+    RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-
-// Mock Data matching the UI
-const COURSE_DATA = {
-    id: 1,
-    title: "Basics of Odoo CRM",
-    description: "Master the fundamentals of customer relationship management using Odoo. Learn to manage pipelines, automate tasks, and boost your sales productivity through practical examples.",
-    coverImage: "bg-gradient-to-r from-purple-400 to-indigo-500", // Placeholder for the gradient cover
-    progress: 30,
-    stats: {
-        content: 4,
-        done: 2,
-        todo: 2
-    },
-    lessons: [
-        {
-            id: 1,
-            order: 1,
-            title: "Advanced Sales & CRM Automation in Odoo",
-            duration: "15 minutes",
-            type: "Video",
-            status: "completed"
-        },
-        {
-            id: 2,
-            order: 2,
-            title: "Odoo CRM: Advanced Features & Best Practices",
-            duration: "25 minutes",
-            type: "Reading",
-            status: "completed"
-        },
-        {
-            id: 3,
-            order: 3,
-            title: "Configuring Custom Sales Pipelines",
-            duration: "10 minutes",
-            type: "Video",
-            status: "pending"
-        },
-        {
-            id: 4,
-            order: 4,
-            title: "Generating CRM Reports & Analytics",
-            duration: "20 minutes",
-            type: "Quiz",
-            status: "pending"
-        }
-    ],
-    reviews: [
-        {
-            id: 1,
-            user: "John Doe",
-            isCurrentUser: true,
-            date: "2 days ago",
-            rating: 4.5,
-            content: "The Odoo CRM workflow is explained very clearly. I particularly liked the section on sales pipelines. Looking forward to more content.",
-            avatar: null
-        },
-        {
-            id: 2,
-            user: "Sarah Miller",
-            isCurrentUser: false,
-            date: "1 week ago",
-            rating: 5,
-            content: "Excellent course for beginners. The hands-on exercises helped me understand how lead scoring works in real-time scenarios.",
-            avatar: "https://i.pravatar.cc/150?u=sarah"
-        },
-        {
-            id: 3,
-            user: "Michael Chen",
-            isCurrentUser: false,
-            date: "2 weeks ago",
-            rating: 4,
-            content: "The visual aids and the structure of the modules are great. I wish there was more depth in the automation part, but for a 'Basics' course, it's perfect.",
-            avatar: "https://i.pravatar.cc/150?u=michael"
-        }
-    ]
-};
+import { coursesApi, lessonsApi, quizzesApi } from '../../services/api';
+import type { Course, Lesson, Quiz } from '../../types/api';
+import { toast } from 'sonner';
 
 const CourseOverview: React.FC = () => {
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
     const navigate = useNavigate();
-    // const { courseId } = useParams(); // Not used currently for mock data
-    const [activeTab, setActiveTab] = useState<'overview' | 'reviews'>('overview');
+    const { courseId } = useParams<{ courseId: string }>();
+    
+    const [course, setCourse] = useState<Course | null>(null);
+    const [lessons, setLessons] = useState<Lesson[]>([]);
+    const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<'content' | 'reviews'>('content');
     const [searchQuery, setSearchQuery] = useState("");
+
+    useEffect(() => {
+        const loadCourseData = async () => {
+            if (!courseId) return;
+            
+            try {
+                setIsLoading(true);
+                const [courseData, courseLessons, courseQuizzes] = await Promise.all([
+                    coursesApi.get(parseInt(courseId)),
+                    lessonsApi.getByCourse(parseInt(courseId)),
+                    quizzesApi.getByCourse(parseInt(courseId))
+                ]);
+                
+                setCourse(courseData);
+                setLessons(courseLessons);
+                setQuizzes(courseQuizzes);
+                
+                // Debug logging to check what content is loaded
+                console.log('Course content loaded:', {
+                    course: courseData?.title,
+                    lessons: courseLessons?.length || 0,
+                    quizzes: courseQuizzes?.length || 0,
+                    lessonTitles: courseLessons?.map(l => l.title) || [],
+                    quizTitles: courseQuizzes?.map(q => q.title) || []
+                });
+            } catch (error) {
+                console.error('Failed to load course data:', error);
+                toast.error('Failed to load course data');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadCourseData();
+
+        // Auto-refresh data when window gains focus (when user switches back to tab)
+        const handleFocus = () => {
+            loadCourseData();
+        };
+
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
+    }, [courseId]);
+
+    const refreshCourseData = async () => {
+        if (!courseId) return;
+        
+        try {
+            const [courseData, courseLessons, courseQuizzes] = await Promise.all([
+                coursesApi.get(parseInt(courseId)),
+                lessonsApi.getByCourse(parseInt(courseId)),
+                quizzesApi.getByCourse(parseInt(courseId))
+            ]);
+            
+            setCourse(courseData);
+            setLessons(courseLessons);
+            setQuizzes(courseQuizzes);
+            
+            // Debug logging for refresh
+            console.log('Course content refreshed:', {
+                course: courseData?.title,
+                lessons: courseLessons?.length || 0,
+                quizzes: courseQuizzes?.length || 0,
+                lessonTitles: courseLessons?.map(l => l.title) || [],
+                quizTitles: courseQuizzes?.map(q => q.title) || []
+            });
+            
+            toast.success('Course content updated!');
+        } catch (error) {
+            console.error('Failed to refresh course data:', error);
+            toast.error('Failed to refresh course data');
+        }
+    };
+
+    const handleLessonClick = (lessonId: number) => {
+        navigate(`/student/course/${courseId}/lesson/${lessonId}`);
+    };
+
+    const handleQuizClick = (quizId: number) => {
+        navigate(`/student/course/${courseId}/quiz/${quizId}`);
+    };
+
+    const getContentIcon = (type: string) => {
+        switch (type) {
+            case 'VIDEO':
+                return <PlayCircle className="w-5 h-5 text-blue-600" />;
+            case 'DOCUMENT':
+                return <FileText className="w-5 h-5 text-green-600" />;
+            case 'IMAGE':
+                return <FileText className="w-5 h-5 text-purple-600" />;
+            default:
+                return <BookOpen className="w-5 h-5 text-gray-600" />;
+        }
+    };
+
+    // Combine lessons and quizzes into a single content array and sort by order
+    const getAllContentItems = () => {
+        const allItems = [
+            ...lessons.map(lesson => ({
+                ...lesson,
+                type: 'lesson',
+                contentType: lesson.type,
+                duration: lesson.estimated_duration || 10,
+                orderIndex: lesson.order_index || 0
+            })),
+            ...quizzes.map(quiz => ({
+                ...quiz,
+                type: 'quiz',
+                contentType: 'QUIZ',
+                duration: quiz.time_limit || 15,
+                orderIndex: quiz.order_index || 1000 // Put quizzes after lessons by default
+            }))
+        ];
+
+        // Sort by order index, then by creation date
+        return allItems.sort((a, b) => {
+            if (a.orderIndex !== b.orderIndex) {
+                return a.orderIndex - b.orderIndex;
+            }
+            return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        });
+    };
+
+    const filteredContent = getAllContentItems().filter(item => 
+        item.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+            </div>
+        );
+    }
+
+    if (!course) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="text-center">
+                    <h3 className="text-xl font-semibold text-gray-700 mb-2">Course not found</h3>
+                    <button 
+                        onClick={() => navigate('/student/courses')}
+                        className="text-purple-600 hover:text-purple-700"
+                    >
+                        Back to courses
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     // Helper to get initials (reused from Dashboard)
     const getInitials = (name: string) => {
@@ -197,16 +280,16 @@ const CourseOverview: React.FC = () => {
 
                         {/* Course Title & Desc */}
                         <div className="flex-grow pt-2 md:pt-4 text-center md:text-left">
-                            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">{COURSE_DATA.title}</h1>
+                            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">{course.title}</h1>
                             <p className="text-slate-500 text-sm leading-relaxed max-w-2xl">
-                                {COURSE_DATA.description}
+                                {course.description}
                             </p>
                         </div>
 
                         {/* Progress Card (Right Side) */}
                         <div className="min-w-[280px] bg-white rounded-xl md:-mt-8 z-10 border border-slate-100 shadow-lg p-5 flex flex-col justify-center">
                             <div className="flex justify-between items-center text-sm font-bold text-slate-700 mb-2">
-                                <span>{COURSE_DATA.progress}% Completed</span>
+                                <span>0% Completed</span>
                                 <span className="text-slate-400 font-normal text-xs">Keep going!</span>
                             </div>
 
@@ -214,22 +297,22 @@ const CourseOverview: React.FC = () => {
                             <div className="w-full bg-slate-100 rounded-full h-2.5 mb-6">
                                 <div
                                     className="bg-[#7E2259] h-2.5 rounded-full transition-all duration-1000"
-                                    style={{ width: `${COURSE_DATA.progress}%` }}
+                                    style={{ width: '0%' }}
                                 ></div>
                             </div>
 
                             {/* Stats Grid */}
                             <div className="grid grid-cols-3 gap-2 text-center divide-x divide-slate-100">
                                 <div>
-                                    <div className="text-xl font-bold text-slate-900">{COURSE_DATA.stats.content}</div>
+                                    <div className="text-xl font-bold text-slate-900">{lessons.length + quizzes.length}</div>
                                     <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Content</div>
                                 </div>
                                 <div>
-                                    <div className="text-xl font-bold text-green-600">{COURSE_DATA.stats.done}</div>
+                                    <div className="text-xl font-bold text-green-600">0</div>
                                     <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Done</div>
                                 </div>
                                 <div>
-                                    <div className="text-xl font-bold text-slate-400">{COURSE_DATA.stats.todo}</div>
+                                    <div className="text-xl font-bold text-slate-400">{lessons.length + quizzes.length}</div>
                                     <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">To Do</div>
                                 </div>
                             </div>
@@ -241,13 +324,13 @@ const CourseOverview: React.FC = () => {
                 <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-2 rounded-xl border border-slate-100 shadow-sm mb-6">
                     <div className="flex items-center gap-1 w-full sm:w-auto p-1 bg-slate-50/50 rounded-lg">
                         <button
-                            onClick={() => setActiveTab('overview')}
-                            className={`flex-1 sm:flex-none px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'overview'
+                            onClick={() => setActiveTab('content')}
+                            className={`flex-1 sm:flex-none px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'content'
                                 ? 'bg-[#7E2259] text-white shadow-md shadow-[#7E2259]/20'
                                 : 'text-slate-500 hover:text-slate-900 hover:bg-white'
                                 }`}
                         >
-                            Course Overview
+                            Course Content
                         </button>
                         <button
                             onClick={() => setActiveTab('reviews')}
@@ -260,70 +343,87 @@ const CourseOverview: React.FC = () => {
                         </button>
                     </div>
 
-                    <div className="relative w-full sm:w-72 mt-4 sm:mt-0 px-2 sm:px-0">
-                        <div className="absolute inset-y-0 left-0 pl-3 sm:pl-0 flex items-center pointer-events-none">
-                            <Search className="h-4 w-4 text-slate-400 sm:ml-3" />
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={refreshCourseData}
+                            className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-[#7E2259] rounded-lg text-sm font-medium transition-colors border border-slate-200"
+                            title="Refresh course content"
+                        >
+                            <RefreshCw size={16} />
+                            <span className="hidden sm:inline">Refresh</span>
+                        </button>
+                        
+                        <div className="relative w-full sm:w-72">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Search className="h-4 w-4 text-slate-400" />
+                            </div>
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="block w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#7E2259] focus:border-[#7E2259] transition-all"
+                                placeholder="Search course content..."
+                            />
                         </div>
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="block w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#7E2259] focus:border-[#7E2259] transition-all"
-                            placeholder="Search course content..."
-                        />
                     </div>
                 </div>
 
-                {/* Content Section - Lesson List */}
-                {activeTab === 'overview' && (
+                {/* Content Section - All Course Content */}
+                {activeTab === 'content' && (
                     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                         <div className="p-6 border-b border-slate-100 flex items-center gap-3">
                             <List className="text-[#7E2259]" size={20} />
-                            <h3 className="text-lg font-bold text-slate-900">{COURSE_DATA.lessons.length} Lessons</h3>
+                            <h3 className="text-lg font-bold text-slate-900">{filteredContent.length} Items</h3>
                         </div>
 
                         <div className="divide-y divide-slate-100">
-                            {COURSE_DATA.lessons.filter(l => l.title.toLowerCase().includes(searchQuery.toLowerCase())).map((lesson, index) => (
-                                <div
-                                    key={lesson.id}
-                                    onClick={() => navigate(`/student/course/${COURSE_DATA.id}/lesson/${lesson.id}`)}
-                                    className="p-5 hover:bg-slate-50 transition-colors group cursor-pointer flex items-center gap-4"
-                                >
-                                    {/* Lesson Number */}
-                                    <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center text-slate-400 font-bold text-sm">
-                                        {index + 1}
-                                    </div>
+                            {filteredContent.length === 0 ? (
+                                <div className="p-8 text-center text-slate-500">
+                                    <BookOpen className="mx-auto h-16 w-16 text-slate-400 mb-4" />
+                                    <h3 className="text-lg font-medium text-slate-700 mb-2">No content available</h3>
+                                    <p className="text-sm">This course doesn't have any lessons or quizzes yet.</p>
+                                </div>
+                            ) : (
+                                filteredContent.map((item, index) => (
+                                    <div
+                                        key={`${item.type}-${item.id}`}
+                                        onClick={() => item.type === 'lesson' ? handleLessonClick(item.id) : handleQuizClick(item.id)}
+                                        className="p-5 hover:bg-slate-50 transition-colors group cursor-pointer flex items-center gap-4"
+                                    >
+                                        {/* Item Number */}
+                                        <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center text-slate-400 font-bold text-sm">
+                                            {index + 1}
+                                        </div>
 
-                                    {/* Main Info */}
-                                    <div className="flex-grow">
-                                        <h4 className={`text-base font-bold mb-1 transition-colors ${lesson.status === 'completed' ? 'text-slate-900' : 'text-slate-700'}`}>
-                                            {lesson.title}
-                                        </h4>
-                                        <div className="flex items-center gap-4 text-xs font-medium text-slate-500">
-                                            <div className="flex items-center">
-                                                <Clock size={12} className="mr-1" />
-                                                {lesson.duration}
-                                            </div>
-                                            <div className="flex items-center">
-                                                <span className="w-1 h-1 bg-slate-300 rounded-full mr-2"></span>
-                                                {getIconForType(lesson.type)}
-                                                {lesson.type}
+                                        {/* Main Info */}
+                                        <div className="flex-grow">
+                                            <h4 className="text-base font-bold mb-1 text-slate-700">
+                                                {item.title}
+                                            </h4>
+                                            <div className="flex items-center gap-4 text-xs font-medium text-slate-500">
+                                                <div className="flex items-center">
+                                                    <Clock size={12} className="mr-1" />
+                                                    {item.duration} min
+                                                </div>
+                                                <div className="flex items-center">
+                                                    <span className="w-1 h-1 bg-slate-300 rounded-full mr-2"></span>
+                                                    {item.type === 'lesson' ? (
+                                                        getContentIcon(item.contentType)
+                                                    ) : (
+                                                        <HelpCircle className="w-5 h-5 text-orange-600 mr-1" />
+                                                    )}
+                                                    {item.type === 'lesson' ? item.contentType : 'Quiz'}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    {/* Status Icon */}
-                                    <div className="flex-shrink-0 ml-4">
-                                        {lesson.status === 'completed' ? (
-                                            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white shadow-sm shadow-blue-200">
-                                                <CheckCircle size={18} fill="currentColor" className="text-white" />
-                                            </div>
-                                        ) : (
+                                        {/* Status Icon */}
+                                        <div className="flex-shrink-0 ml-4">
                                             <div className="w-8 h-8 rounded-full border-2 border-slate-200 group-hover:border-[#7E2259] transition-colors"></div>
-                                        )}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </div>
                     </div>
                 )}

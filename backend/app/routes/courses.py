@@ -59,8 +59,8 @@ async def get_courses(
     published_only: bool = True,
     db: AsyncSession = Depends(get_async_session)
 ):
-    """Get all courses"""
-    query = select(Course)
+    """Get all courses with fresh data (no caching)"""
+    query = select(Course).order_by(Course.created_at.desc())
     
     if published_only:
         query = query.where(Course.published == True)
