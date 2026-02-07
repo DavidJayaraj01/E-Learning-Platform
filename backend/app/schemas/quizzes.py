@@ -102,3 +102,34 @@ class QuizAttemptResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+class QuizWithQuestions(QuizResponse):
+    """Quiz with all questions and options"""
+    questions: List[QuestionResponse] = []
+    
+    class Config:
+        from_attributes = True
+
+
+class AnswerSubmit(BaseModel):
+    """Answer submission schema for a single question"""
+    question_id: int
+    selected_option_id: int
+
+
+class AttemptResultResponse(BaseModel):
+    """Result response after completing a quiz attempt"""
+    attempt_id: int
+    quiz_id: int
+    user_id: int
+    status: QuizAttemptStatus
+    earned_points: int
+    total_possible_points: int
+    correct_answers: int
+    total_questions: int
+    percentage_score: float
+    completed_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
