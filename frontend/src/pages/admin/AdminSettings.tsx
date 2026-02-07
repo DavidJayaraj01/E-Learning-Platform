@@ -202,13 +202,13 @@ const AdminSettings: React.FC = () => {
                             <div className="space-y-8">
                                 <div className="space-y-1">
                                     <h2 className="text-3xl font-bold text-slate-800 tracking-tight">General Settings</h2>
-                                    <p className="text-sm text-slate-400">Configure basic information about your e-learning platform.</p>
+                                    <p className="text-sm text-slate-400">Configure basic information about your LearnSphere platform.</p>
                                 </div>
                                 <div className="bg-white rounded-[2rem] border border-gray-100 p-10 space-y-6 shadow-sm">
                                     <div className="grid grid-cols-2 gap-8">
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Site Name</label>
-                                            <input type="text" className="w-full px-4 py-3 rounded-xl border border-slate-100 bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-[#7E2259]/10 text-sm font-bold text-slate-700" defaultValue="EduPlatform Pro" />
+                                            <input type="text" className="w-full px-4 py-3 rounded-xl border border-slate-100 bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-[#7E2259]/10 text-sm font-bold text-slate-700" defaultValue="LearnSphere Pro" />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Support Email</label>
@@ -216,7 +216,7 @@ const AdminSettings: React.FC = () => {
                                         </div>
                                         <div className="space-y-2 col-span-2">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Platform Description</label>
-                                            <textarea className="w-full px-4 py-3 rounded-xl border border-slate-100 bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-[#7E2259]/10 text-sm font-bold text-slate-700 h-32" defaultValue="The world's leading e-learning experience for professional development." />
+                                            <textarea className="w-full px-4 py-3 rounded-xl border border-slate-100 bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-[#7E2259]/10 text-sm font-bold text-slate-700 h-32" defaultValue="The world's leading LearnSphere experience for professional development." />
                                         </div>
                                     </div>
                                     <div className="flex justify-end pt-4">

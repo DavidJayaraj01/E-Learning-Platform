@@ -393,7 +393,7 @@ const CourseEditor: React.FC = () => {
             {/* Global Footer */}
             <footer className="bg-white border-t border-gray-100 px-10 py-8">
                 <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-                    <p className="text-sm font-bold text-slate-400">© 2024 EduPlatform. All rights reserved.</p>
+                    <p className="text-sm font-bold text-slate-400">© 2024 LearnSphere. All rights reserved.</p>
                     <div className="flex items-center gap-8 text-sm font-bold text-slate-400">
                         <a href="#" className="hover:text-[#7E2259] transition-colors">Documentation</a>
                         <a href="#" className="hover:text-[#7E2259] transition-colors">Support</a>

@@ -297,7 +297,7 @@ const QuizEditor: React.FC = () => {
 
                             {/* Footer text */}
                             <div className="text-center pt-10">
-                                <p className="text-[11px] font-bold text-slate-300">© 2024 Quiz Platform Admin. All rights reserved.</p>
+                                <p className="text-[11px] font-bold text-slate-300">© 2024 LearnSphere Admin. All rights reserved.</p>
                             </div>
                         </div>
                     )}

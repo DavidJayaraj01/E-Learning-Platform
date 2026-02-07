@@ -69,6 +69,7 @@ export interface Lesson {
   title: string;
   lesson_type: 'VIDEO' | 'DOCUMENT' | 'IMAGE' | 'QUIZ';
   description?: string;
+  content?: string; // For RAG-generated or manually entered lesson content
   responsible_id?: number;
   order_index: number;
   duration?: string;
@@ -85,6 +86,7 @@ export interface LessonCreate {
   title: string;
   lesson_type: 'VIDEO' | 'DOCUMENT' | 'IMAGE' | 'QUIZ';
   description?: string;
+  content?: string; // For RAG-generated or manually entered lesson content
   responsible_id?: number;
   order_index?: number;
   duration?: string;
@@ -94,6 +96,7 @@ export interface LessonUpdate {
   title?: string;
   lesson_type?: 'VIDEO' | 'DOCUMENT' | 'IMAGE' | 'QUIZ';
   description?: string;
+  content?: string; // For updating lesson content
   order_index?: number;
   duration?: string;
 }

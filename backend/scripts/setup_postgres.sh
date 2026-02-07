@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🔧 PostgreSQL Database Setup for E-Learning Platform"
+echo "🔧 PostgreSQL Database Setup for LearnSphere"
 echo "====================================================="
 echo ""
 

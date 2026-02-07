@@ -160,7 +160,7 @@ const UserForm: React.FC = () => {
               {isEditing ? 'Edit User' : 'Create New User'}
             </h1>
             <p className="text-slate-500 mt-1">
-              {isEditing ? 'Update user details and permissions' : 'Add a new user to the platform'}
+              {isEditing ? 'Update user details and permissions' : 'Add a new user to LearnSphere'}
             </p>
           </div>
 
@@ -281,8 +281,8 @@ const UserForm: React.FC = () => {
                 <h2 className="font-bold text-slate-900">Account Status</h2>
                 <p className="text-sm text-slate-500 mt-1">
                   {formData.is_active
-                    ? 'User can log in and access the platform'
-                    : 'User is blocked from accessing the platform'}
+                    ? 'User can log in and access LearnSphere'
+                    : 'User is blocked from accessing LearnSphere'}
                 </p>
               </div>
               <button

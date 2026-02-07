@@ -1,6 +1,6 @@
-# E-Learning Platform
+# LearnSphere
 
-A full-stack e-learning platform built with FastAPI backend and React frontend.
+A full-stack learning management system built with FastAPI backend and React frontend.
 
 ## Project Structure
 

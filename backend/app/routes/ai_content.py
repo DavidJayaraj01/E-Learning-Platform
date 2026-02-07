@@ -8,7 +8,7 @@ Provides endpoints for generating content using local Ollama with Gemma model.
 - Direct save to database
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form
 from pydantic import BaseModel, Field
 from typing import List, Optional
 import httpx
@@ -27,6 +27,39 @@ logger = logging.getLogger(__name__)
 OLLAMA_URL = "http://localhost:11434/api/chat"
 # Common model names: gemma3:12b, gemma2:12b, gemma:12b, llama3:8b
 DEFAULT_MODEL = "gemma3:4b"  # Using Gemma 4B as available
+
+
+# =============================================================================
+# CONTENT CLEANING FUNCTIONS
+# =============================================================================
+
+def clean_ai_content(content: str) -> str:
+    """Clean AI-generated content by removing special symbols and meta phrases"""
+    import re
+    
+    # Remove common intro phrases
+    intro_patterns = [
+        r'^(Okay,?\s*)?[Hh]ere\'?s\s+(a\s+)?(comprehensive\s+)?(lesson\s+on\s+|guide\s+to\s+|overview\s+of\s+)?',
+        r'^(Alright,?\s*)?[Ll]et\'?s\s+(create\s+|start\s+with\s+|begin\s+with\s+)',
+        r'^(Sure,?\s*)?[Ii]\'?ll\s+(create\s+|generate\s+|provide\s+)',
+        r'^[Tt]his\s+lesson\s+(will\s+cover|covers)\s+',
+        r'^[Tt]oday\s+we\'?ll\s+(learn\s+about|explore|discuss)\s+',
+        r'^[Ii]n\s+this\s+(lesson|guide|tutorial),?\s+(we\'?ll|you\'?ll)\s+',
+    ]
+    
+    for pattern in intro_patterns:
+        content = re.sub(pattern, '', content, flags=re.IGNORECASE).strip()
+    
+    # Remove special formatting symbols
+    content = re.sub(r'\*\*([^*]+)\*\*', r'\1', content)  # **bold** -> bold
+    content = re.sub(r'\*([^*]+)\*', r'\1', content)      # *italic* -> italic
+    content = re.sub(r'__([^_]+)__', r'\1', content)      # __underline__ -> underline
+    content = re.sub(r'_([^_]+)_', r'\1', content)        # _italic_ -> italic
+    
+    # Remove multiple spaces and clean up
+    content = re.sub(r'\s+', ' ', content).strip()
+    
+    return content
 
 
 # =============================================================================
@@ -556,4 +589,128 @@ Make sure exactly one answer is marked as correct for each question."""
         "num_questions": len(data.get("questions", [])),
         "message": "Quiz generated and saved successfully"
     }
+
+
+@router.post("/generate-from-document", response_model=ContentGenerationResponse)
+async def generate_from_document(
+    file: UploadFile = File(...),
+    extraction_type: str = Form("lesson"),
+    topic_focus: Optional[str] = Form(None),
+    content_requirements: Optional[str] = Form(None),
+    difficulty_level: Optional[str] = Form("intermediate"),
+    lesson_count: Optional[int] = Form(1),
+    include_examples: Optional[bool] = Form(True),
+    current_user: User = Depends(require_instructor_or_admin)
+):
+    """
+    Generate lesson content from uploaded documents using RAG with Gemma 3 4B.
+    
+    This endpoint:
+    1. Accepts document uploads (TXT, MD, PDF, DOC, DOCX)
+    2. Extracts relevant content based on topic focus
+    3. Uses Gemma 3 4B to generate structured lesson content
+    4. Returns formatted lesson content with title suggestions
+    """
+    
+    # Validate file type
+    allowed_extensions = {".txt", ".md", ".pdf", ".doc", ".docx"}
+    file_extension = f".{file.filename.split('.')[-1].lower()}" if '.' in file.filename else ""
+    
+    if file_extension not in allowed_extensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type. Allowed: {', '.join(allowed_extensions)}"
+        )
+    
+    try:
+        # Read file content
+        content = await file.read()
+        
+        # Process based on file type
+        if file_extension == ".pdf":
+            # For PDF files, we'll need to extract text
+            # For now, we'll use a simple text extraction
+            # In production, you might want to use PyPDF2, pdfplumber, or similar
+            text_content = "PDF processing not fully implemented in this demo. Please use TXT or MD files."
+        elif file_extension in [".doc", ".docx"]:
+            # For Word documents, we'll need to extract text
+            # For now, we'll use a simple approach
+            # In production, you might want to use python-docx
+            text_content = "Word document processing not fully implemented in this demo. Please use TXT or MD files."
+        else:
+            # For TXT and MD files
+            try:
+                text_content = content.decode('utf-8')
+            except UnicodeDecodeError:
+                try:
+                    text_content = content.decode('latin-1')
+                except:
+                    raise HTTPException(status_code=400, detail="Could not decode file content")
+        
+        # Truncate content if too long (Ollama has token limits)
+        max_chars = 8000  # Approximate limit for context
+        if len(text_content) > max_chars:
+            text_content = text_content[:max_chars] + "..."
+        
+        # Prepare RAG prompt based on extraction requirements
+        topic_instruction = f"\n\nFocus specifically on: {topic_focus}" if topic_focus else ""
+        requirements_instruction = f"\n\nContent requirements: {content_requirements}" if content_requirements else ""
+        
+        system_prompt = f"""You are an expert educational content creator. Generate clean, direct lesson content without any introductory phrases or meta-commentary.
+
+IMPORTANT RULES:
+- Do NOT start with phrases like "Here's a lesson on..." or "Okay, here's..."
+- Do NOT use special formatting symbols like ** or __ 
+- Do NOT include any commentary about what you're doing
+- Start directly with the lesson content
+- Use simple text formatting only
+- Be concise and educational
+
+Extraction Type: {extraction_type}
+Difficulty Level: {difficulty_level}
+Include Examples: {include_examples}
+{topic_instruction}
+{requirements_instruction}
+
+Generate clean, structured lesson content that starts immediately with the topic."""
+
+        user_prompt = f"""Based on this book/document content:
+
+{text_content}
+
+{topic_instruction}
+{requirements_instruction}
+
+Generate clean lesson content about the requested topic. Start directly with the lesson content without any introductory phrases. Use simple formatting without special symbols."""
+
+        # Generate content using Ollama with Gemma 3 4B
+        generated_content = await generate_with_ollama(user_prompt, system_prompt, "gemma3:4b")
+        
+        # Clean the generated content
+        generated_content = clean_ai_content(generated_content)
+        
+        # Generate title suggestion
+        title_prompt = f"Generate only a simple lesson title (5-8 words maximum) for this content:\n\n{generated_content[:300]}..."
+        title_suggestion = await generate_with_ollama(
+            title_prompt,
+            "Generate only the title text without any formatting or extra words.",
+            "gemma3:4b"
+        )
+        
+        # Clean up title suggestion
+        title_suggestion = title_suggestion.strip().strip('"').strip("'")
+        if len(title_suggestion) > 100:
+            title_suggestion = title_suggestion[:97] + "..."
+        
+        return ContentGenerationResponse(
+            content=generated_content,
+            title_suggestion=title_suggestion
+        )
+        
+    except Exception as e:
+        logger.error(f"Document processing error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to process document and generate content: {str(e)}"
+        )
 

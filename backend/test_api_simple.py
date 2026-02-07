@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simple test script to verify the E-Learning Platform API is working correctly.
+Simple test script to verify the LearnSphere API is working correctly.
 Tests authentication, course fetching, and role-based access.
 """
 
@@ -91,7 +91,7 @@ class APITester:
 
     async def run_all_tests(self):
         """Run all tests"""
-        print("🚀 Starting E-Learning Platform API Tests...")
+        print("🚀 Starting LearnSphere API Tests...")
         
         admin_ok = await self.test_admin_login()
         student_ok = await self.test_student_login()
@@ -106,6 +106,6 @@ async def main():
         await tester.run_all_tests()
 
 if __name__ == "__main__":
-    print("E-Learning Platform API Tester")
+    print("LearnSphere API Tester")
     print("="*50)
     asyncio.run(main())
