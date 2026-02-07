@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database.config import settings
-from app.routes import users, courses, lessons, auth
+from app.routes import users, courses, lessons, auth, quizzes, reviews
 
 # Create FastAPI app
 app = FastAPI(
@@ -26,6 +26,8 @@ app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 app.include_router(courses.router, prefix="/api/v1/courses", tags=["courses"])
 app.include_router(lessons.router, prefix="/api/v1/lessons", tags=["lessons"])
+app.include_router(quizzes.router, prefix="/api/v1/quizzes", tags=["quizzes"])
+app.include_router(reviews.router, prefix="/api/v1", tags=["reviews"])
 
 @app.get("/")
 async def root():
@@ -38,7 +40,9 @@ async def root():
             "auth": "/api/v1/auth",
             "users": "/api/v1/users",
             "courses": "/api/v1/courses", 
-            "lessons": "/api/v1/lessons"
+            "lessons": "/api/v1/lessons",
+            "quizzes": "/api/v1/quizzes",
+            "reviews": "/api/v1/courses/{course_id}/reviews"
         }
     }
 
