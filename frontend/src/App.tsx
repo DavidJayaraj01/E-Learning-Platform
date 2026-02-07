@@ -11,6 +11,11 @@ import StudentDashboard from './pages/student/Dashboard';
 import CourseOverview from './pages/student/CourseOverview';
 import LessonView from './pages/student/LessonView';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import CourseEditor from './pages/admin/CourseEditor';
+import ContentEditor from './pages/admin/ContentEditor';
+import QuizEditor from './pages/admin/QuizEditor';
+import CourseReportingDashboard from './pages/admin/CourseReportingDashboard';
+import AdminSettings from './pages/admin/AdminSettings';
 import LandingPage from './pages/LandingPage';
 import LoadingSpinner from './components/common/LoadingSpinner';
 
@@ -120,6 +125,18 @@ function App() {
                 </ProtectedRoute>
               } />
 
+              <Route path="/admin/course/create" element={
+                <ProtectedRoute allowedRole="admin">
+                  <CourseEditor />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/admin/course/content/edit" element={
+                <ProtectedRoute allowedRole="admin">
+                  <ContentEditor />
+                </ProtectedRoute>
+              } />
+
               {/* Legacy dashboard route redirect */}
               <Route path="/dashboard" element={
                 <ProtectedRoute>
@@ -132,6 +149,24 @@ function App() {
               <Route path="/student/courses" element={
                 <ProtectedRoute>
                   <div className="p-8">Courses page coming soon</div>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/admin/course/quiz/new" element={
+                <ProtectedRoute allowedRole="admin">
+                  <QuizEditor />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/admin/settings" element={
+                <ProtectedRoute allowedRole="admin">
+                  <AdminSettings />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/admin/reporting" element={
+                <ProtectedRoute allowedRole="admin">
+                  <CourseReportingDashboard />
                 </ProtectedRoute>
               } />
 

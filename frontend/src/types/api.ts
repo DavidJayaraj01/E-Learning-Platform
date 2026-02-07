@@ -53,7 +53,7 @@ export interface CourseCreate {
   course_admin_id?: number;
 }
 
-export interface CourseUpdate extends Partial<CourseCreate> {}
+export interface CourseUpdate extends Partial<CourseCreate> { }
 
 // Lesson types
 export interface Lesson {
@@ -83,7 +83,7 @@ export interface LessonCreate {
   duration?: string;
 }
 
-export interface LessonUpdate extends Partial<LessonCreate> {}
+export interface LessonUpdate extends Partial<LessonCreate> { }
 
 // Lesson content types
 export interface LessonVideo {
@@ -301,7 +301,7 @@ export interface RegisterRequest {
   email: string;
   name: string;
   password: string;
-  role?: 'instructor' | 'learner';
+  role?: 'admin' | 'instructor' | 'learner';
 }
 
 // Error types

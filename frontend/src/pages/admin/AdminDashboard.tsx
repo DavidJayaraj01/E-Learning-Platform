@@ -1,194 +1,273 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
-    Users,
-    BookOpen,
-    LogOut,
-    BarChart,
-    LayoutDashboard,
-    Bell,
     Search,
-    Settings,
-    UserCheck,
-    MoreVertical
+    Moon,
+    LayoutGrid,
+    Plus,
+    X,
+    Share2,
+    LogOut,
+    LayoutDashboard,
+    List,
+    Edit3,
 } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
     const { user, logout } = useAuth();
-    const [activeTab, setActiveTab] = useState('overview');
+    const navigate = useNavigate();
+    const [activeTab, setActiveTab] = useState('Courses');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [newCourseName, setNewCourseName] = useState('');
 
-    // Mock data for admin stats
-    const stats = [
-        { title: 'Total Users', value: '1,234', icon: Users, color: 'bg-blue-500' },
-        { title: 'Active Courses', value: '45', icon: BookOpen, color: 'bg-green-500' },
-        { title: 'Pending Approvals', value: '12', icon: UserCheck, color: 'bg-yellow-500' },
-        { title: 'Total Revenue', value: '$12,450', icon: BarChart, color: 'bg-purple-500' },
+    const courses = [
+        {
+            id: 1,
+            title: 'Introduction to Odoo AI',
+            tags: ['AI', 'Technology', 'Advanced'],
+            views: '15',
+            contents: '6',
+            duration: '25:30',
+        },
+        {
+            id: 2,
+            title: 'Basics of Odoo CRM',
+            tags: ['CRM', 'Beginner'],
+            views: '20',
+            contents: '8',
+            duration: '20:35',
+        },
+        {
+            id: 3,
+            title: 'About Odoo Courses',
+            tags: ['Overview'],
+            views: '10',
+            contents: '5',
+            duration: '10:20',
+        }
     ];
 
-    const recentUsers = [
-        { id: 1, name: 'John Doe', email: 'john@example.com', role: 'Student', status: 'Active' },
-        { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'Instructor', status: 'Pending' },
-        { id: 3, name: 'Bob Johnson', email: 'bob@example.com', role: 'Student', status: 'Active' },
-    ];
+    const handleCreateCourse = (e: React.FormEvent) => {
+        e.preventDefault();
+        // Handle course creation logic here
+        console.log('Creating course:', newCourseName);
+        setIsCreateModalOpen(false);
+        setNewCourseName('');
+        navigate('/admin/course/create');
+    };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex">
-            {/* Sidebar */}
-            <div className="w-64 bg-slate-900 text-white min-h-screen hidden md:block">
-                <div className="p-6">
-                    <h1 className="text-xl font-bold tracking-wider">AdminPanel</h1>
-                </div>
-                <nav className="mt-6 px-4 space-y-2">
-                    <button
-                        onClick={() => setActiveTab('overview')}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'overview' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
-                    >
-                        <LayoutDashboard size={20} />
-                        Overview
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('users')}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'users' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
-                    >
-                        <Users size={20} />
-                        Users
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('courses')}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'courses' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
-                    >
-                        <BookOpen size={20} />
-                        Courses
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('settings')}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'settings' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
-                    >
-                        <Settings size={20} />
-                        Settings
-                    </button>
-                </nav>
-                <div className="absolute bottom-0 w-64 p-4 border-t border-slate-800">
-                    <button
-                        onClick={logout}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-                    >
-                        <LogOut size={20} />
-                        Logout
-                    </button>
-                </div>
-            </div>
-
-            {/* Main Content */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Header */}
-                <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6">
-                    <div className="flex items-center gap-4">
-                        <h2 className="text-xl font-semibold text-gray-800 capitalize">{activeTab}</h2>
+        <div className="min-h-screen bg-[#FDFDFF] font-sans">
+            {/* Header */}
+            {/* ... same as before ... */}
+            <header className="bg-white px-8 py-3 flex items-center justify-between border-b border-gray-100 sticky top-0 z-50">
+                <div className="flex items-center gap-10">
+                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/admin/dashboard')}>
+                        <div className="bg-[#7E2259] p-1.5 rounded-lg">
+                            <LayoutDashboard className="text-white w-5 h-5" />
+                        </div>
+                        <span className="text-xl font-bold text-[#2D2D2D]">Admin<span className="text-slate-400">Panel</span></span>
                     </div>
-                    <div className="flex items-center gap-6">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                            <input
-                                type="text"
-                                placeholder="Search..."
-                                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-64"
+
+                    <nav className="flex items-center gap-2">
+                        {['Courses', 'Reporting', 'Settings'].map((tab) => (
+                            <button
+                                key={tab}
+                                onClick={() => {
+                                    if (tab === 'Reporting') {
+                                        navigate('/admin/reporting');
+                                    } else if (tab === 'Settings') {
+                                        navigate('/admin/settings');
+                                    } else {
+                                        setActiveTab(tab);
+                                    }
+                                }}
+                                className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === tab
+                                    ? 'bg-[#7E2259] text-white shadow-lg shadow-[#7E2259]/20'
+                                    : 'text-gray-500 hover:text-[#7E2259]'
+                                    }`}
+                            >
+                                {tab}
+                            </button>
+                        ))}
+                    </nav>
+                </div>
+
+                <div className="flex items-center gap-6">
+                    <button className="text-gray-400 hover:text-[#7E2259] transition-colors">
+                        <Moon size={22} />
+                    </button>
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="text-right hidden sm:block">
+                                <p className="text-sm font-bold text-gray-900 leading-none">{user?.name || 'Admin User'}</p>
+                                <p className="text-[10px] text-gray-500 font-medium">Administrator</p>
+                            </div>
+                            <img
+                                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin"
+                                alt="Admin"
+                                className="w-10 h-10 rounded-full border-2 border-white shadow-sm"
                             />
                         </div>
-                        <button className="text-gray-500 hover:text-gray-700 relative">
-                            <Bell size={20} />
-                            <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
+                        <button
+                            onClick={logout}
+                            className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                            title="Logout"
+                        >
+                            <LogOut size={20} />
                         </button>
-                        <div className="flex items-center gap-3 border-l pl-6 border-gray-200">
-                            <div className="text-right">
-                                <p className="text-sm font-medium text-gray-900">{user?.name || 'Admin User'}</p>
-                                <p className="text-xs text-gray-500">Administrator</p>
-                            </div>
-                            <div className="h-10 w-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold">
-                                A
-                            </div>
-                        </div>
                     </div>
-                </header>
+                </div>
+            </header>
 
-                {/* Content Area */}
-                <main className="flex-1 overflow-auto p-6">
-                    {activeTab === 'overview' && (
-                        <div className="space-y-6">
-                            {/* Stats Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                {stats.map((stat, index) => (
-                                    <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex items-center gap-4">
-                                        <div className={`p-4 rounded-lg ${stat.color} bg-opacity-10`}>
-                                            <stat.icon size={24} className={`text-${stat.color.split('-')[1]}-600`} />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-500">{stat.title}</p>
-                                            <h3 className="text-2xl font-bold text-gray-900">{stat.value}</h3>
+            <main className="max-w-7xl mx-auto px-8 py-10 relative">
+                {/* Search and Toggle */}
+                <div className="flex items-center justify-between mb-8 gap-4">
+                    <div className="relative flex-1 max-w-lg">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                        <input
+                            type="text"
+                            placeholder="Search the course..."
+                            className="w-full bg-white border-none rounded-xl pl-12 pr-4 py-3.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#7E2259]/10 transition-all text-gray-600"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="flex items-center gap-0 bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
+                        <button className="p-3 text-gray-400 hover:text-[#7E2259] hover:bg-gray-50">
+                            <LayoutGrid size={22} />
+                        </button>
+                        <button className="p-3 bg-[#7E2259] text-white">
+                            <List size={22} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Course List */}
+                <div className="space-y-6">
+                    {courses.filter(c => c.title.toLowerCase().includes(searchQuery.toLowerCase())).map((course) => (
+                        <div key={course.id} className="bg-white rounded-[2.5rem] p-10 shadow-[0_4px_20px_-3px_rgba(0,0,0,0.03),0_10px_25px_-2px_rgba(0,0,0,0.02)] border border-gray-50 flex flex-col md:flex-row items-center justify-between relative group hover:shadow-[0_8px_30px_-5px_rgba(0,0,0,0.08)] transition-all">
+                            <div className="flex-1 w-full">
+                                <h3 className="text-2xl font-black text-[#2D2D2D] mb-6">{course.title}</h3>
+                                <div className="flex flex-wrap gap-3">
+                                    {course.tags.map(tag => (
+                                        <span key={tag} className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#F8F1F6] text-[#7E2259] rounded-full text-xs font-black uppercase tracking-wider transition-colors hover:bg-[#F3E6F0] cursor-default">
+                                            {tag}
+                                            <X size={14} className="text-[#7E2259]/30 hover:text-[#7E2259] cursor-pointer" />
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-center gap-12 lg:gap-24 px-8 md:px-16 w-full md:w-auto my-10 md:my-0">
+                                <div className="text-center group/stat">
+                                    <div className="text-4xl font-black text-[#2D2D2D]">{course.views}</div>
+                                    <div className="text-[11px] font-black text-[#B0BCC7] uppercase tracking-[0.2em] mt-2 group-hover/stat:text-[#7E2259] transition-colors">Views</div>
+                                </div>
+                                <div className="text-center group/stat border-x border-gray-100 px-12 lg:px-24">
+                                    <div className="text-4xl font-black text-[#2D2D2D]">{course.contents}</div>
+                                    <div className="text-[11px] font-black text-[#B0BCC7] uppercase tracking-[0.2em] mt-2 group-hover/stat:text-[#7E2259] transition-colors">Contents</div>
+                                </div>
+                                <div className="text-center group/stat">
+                                    <div className="text-4xl font-black text-[#2D2D2D]">{course.duration}</div>
+                                    <div className="text-[11px] font-black text-[#B0BCC7] uppercase tracking-[0.2em] mt-2 group-hover/stat:text-[#7E2259] transition-colors">Duration</div>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col items-center md:items-end gap-4 min-w-[160px] w-full md:w-auto">
+                                <div className="relative w-full flex justify-end items-center gap-3">
+                                    <div className="absolute -top-12 -right-2 transform rotate-[-12deg] z-10">
+                                        <div className="bg-[#E7F7EF] text-[#22C55E] text-[12px] font-black px-5 py-2 rounded-xl border-2 border-[#E7F7EF] shadow-[0_4px_12px_-2px_rgba(34,197,94,0.15)] select-none">
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-
-                            {/* Recent Users Table */}
-                            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                                <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                                    <h3 className="text-lg font-bold text-gray-900">Recent Registrations</h3>
-                                    <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">View All</button>
+                                    <button className="p-3.5 text-gray-400 hover:text-[#7E2259] bg-white border border-gray-100 rounded-[1rem] transition-all hover:shadow-md">
+                                        <Share2 size={20} />
+                                    </button>
                                 </div>
-                                <table className="w-full">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
-                                        {recentUsers.map((user) => (
-                                            <tr key={user.id}>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="flex items-center">
-                                                        <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
-                                                            {user.name.charAt(0)}
-                                                        </div>
-                                                        <div className="ml-4">
-                                                            <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                                                            <div className="text-sm text-gray-500">{user.email}</div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                                        {user.role}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                                        {user.status}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                    <button className="text-gray-400 hover:text-gray-600">
-                                                        <MoreVertical size={20} />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                <button className="w-full bg-[#7E2259] text-white px-10 py-4 rounded-[1.25rem] font-black flex items-center justify-center gap-3 hover:bg-[#6D1F4D] active:scale-95 transition-all shadow-xl shadow-[#7E2259]/20 group/btn">
+                                    <Edit3 size={20} className="group-hover/btn:rotate-12 transition-transform" />
+                                    Edit
+                                </button>
                             </div>
                         </div>
-                    )}
+                    ))}
+                </div>
 
-                    {activeTab !== 'overview' && (
-                        <div className="flex items-center justify-center h-full text-gray-400">
-                            <p>Wait for {activeTab} module implementation...</p>
+                {/* FAB */}
+                <button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="fixed bottom-12 right-12 w-20 h-20 bg-[#7E2259] text-white rounded-full shadow-[0_15px_35px_-5px_rgba(126,34,89,0.4)] flex items-center justify-center hover:scale-110 active:scale-90 transition-all z-40 group"
+                    title="Add Course"
+                >
+                    <Plus size={40} strokeWidth={3} className="group-hover:rotate-180 transition-transform duration-500" />
+                </button>
+
+                {/* Create Course Modal */}
+                {isCreateModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+                        <div
+                            className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm"
+                            onClick={() => setIsCreateModalOpen(false)}
+                        />
+                        <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl relative z-10 overflow-hidden transform transition-all animate-in fade-in zoom-in duration-200">
+                            {/* Modal Header */}
+                            <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between">
+                                <h2 className="text-2xl font-bold text-gray-900">Create Course</h2>
+                                <button
+                                    onClick={() => setIsCreateModalOpen(false)}
+                                    className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                                >
+                                    <X size={24} />
+                                </button>
+                            </div>
+
+                            {/* Modal Body */}
+                            <form onSubmit={handleCreateCourse} className="p-8">
+                                <div className="space-y-6">
+                                    <div className="space-y-2">
+                                        <label htmlFor="courseName" className="text-sm font-semibold text-gray-500">
+                                            Course Name
+                                        </label>
+                                        <input
+                                            id="courseName"
+                                            type="text"
+                                            autoFocus
+                                            placeholder="Provide a name.. (Eg: Basics of Odoo CRM)"
+                                            className="w-full bg-white border-2 border-primary-500/20 rounded-lg px-4 py-4 text-lg text-gray-700 outline-none focus:border-[#7E2259] transition-all"
+                                            value={newCourseName}
+                                            onChange={(e) => setNewCourseName(e.target.value)}
+                                            required
+                                        />
+                                        <p className="text-sm text-gray-400 italic">
+                                            Tip: Use a clear and concise title for your new course to help students find it easily.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Modal Footer */}
+                                <div className="mt-12 flex items-center justify-end gap-6">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsCreateModalOpen(false)}
+                                        className="text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="bg-[#7E2259] text-white px-8 py-3.5 rounded-lg font-bold hover:bg-[#6D1F4D] transition-all shadow-lg shadow-[#7E2259]/20"
+                                    >
+                                        Create Course
+                                    </button>
+                                </div>
+                            </form>
                         </div>
-                    )}
-                </main>
-            </div>
+                    </div>
+                )}
+            </main>
         </div>
     );
 };

@@ -39,7 +39,7 @@ const Register: React.FC = () => {
         name,
         email,
         password,
-        role: role as 'learner' | 'instructor'
+        role: role as 'admin' | 'learner' | 'instructor'
       });
 
       if (role === 'admin') {
