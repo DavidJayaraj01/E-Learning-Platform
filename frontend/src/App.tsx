@@ -1,46 +1,95 @@
-import React from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import HomePage from './pages/HomePage'
-import CoursesPage from './pages/CoursesPage'
-import './App.css'
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
-const queryClient = new QueryClient()
+// Import pages
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+import Dashboard from './pages/Dashboard';
+import LoadingSpinner from './components/common/LoadingSpinner';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+// Protected Route Component
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Public Route Component (redirect to dashboard if authenticated)
+const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+};
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <div className="min-h-screen bg-gray-50">
-          <nav className="bg-white shadow-sm border-b">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between h-16">
-                <div className="flex items-center">
-                  <h1 className="text-xl font-bold text-gray-900">
-                    E-Learning Platform
-                  </h1>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <a href="/" className="text-gray-700 hover:text-gray-900">Home</a>
-                  <a href="/courses" className="text-gray-700 hover:text-gray-900">Courses</a>
-                  <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
-                    Sign In
-                  </button>
-                </div>
-              </div>
-            </div>
-          </nav>
-
-          <main>
+      <AuthProvider>
+        <Router>
+          <div className="App">
             <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/courses" element={<CoursesPage />} />
+              {/* Public Routes */}
+              <Route path="/login" element={
+                <PublicRoute>
+                  <Login />
+                </PublicRoute>
+              } />
+              <Route path="/register" element={
+                <PublicRoute>
+                  <Register />
+                </PublicRoute>
+              } />
+
+              {/* Protected Routes */}
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } />
+
+              {/* Placeholder routes for future pages */}
+              <Route path="/courses" element={
+                <ProtectedRoute>
+                  <div className="p-8">Courses page coming soon</div>
+                </ProtectedRoute>
+              } />
+
+              {/* Default redirect */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
-          </main>
-        </div>
-      </Router>
+          </div>
+        </Router>
+      </AuthProvider>
     </QueryClientProvider>
-  )
+  );
 }
 
-export default App
+export default App;

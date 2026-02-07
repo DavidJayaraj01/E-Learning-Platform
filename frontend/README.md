@@ -1,103 +1,73 @@
-React + Vite Frontend Template for E-Learning Platform
+# React + TypeScript + Vite
 
-This frontend will be built using React + Vite for the E-Learning Platform.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Setup Instructions
+Currently, two official plugins are available:
 
-1. Install Node.js (version 18 or higher)
-2. Navigate to the frontend directory
-3. Run the following commands:
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-```bash
-# Initialize Vite React project
-npm create vite@latest . -- --template react-ts
+## React Compiler
 
-# Install dependencies
-npm install
+The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
 
-# Install additional dependencies for the E-Learning Platform
-npm install @tanstack/react-query axios react-router-dom @headlessui/react @heroicons/react tailwindcss
+## Expanding the ESLint configuration
 
-# Install dev dependencies
-npm install -D @types/react @types/react-dom eslint @typescript-eslint/eslint-plugin @typescript-eslint/parser
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
-# Start development server
-npm run dev
+```js
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+
+      // Remove tseslint.configs.recommended and replace with this
+      tseslint.configs.recommendedTypeChecked,
+      // Alternatively, use this for stricter rules
+      tseslint.configs.strictTypeChecked,
+      // Optionally, add this for stylistic rules
+      tseslint.configs.stylisticTypeChecked,
+
+      // Other configs...
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
 
-## Project Structure (After setup)
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+      // Enable lint rules for React
+      reactX.configs['recommended-typescript'],
+      // Enable lint rules for React DOM
+      reactDom.configs.recommended,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
-frontend/
-├── public/
-├── src/
-│   ├── components/          # Reusable UI components
-│   ├── pages/              # Page components
-│   ├── hooks/              # Custom React hooks
-│   ├── services/           # API service functions
-│   ├── types/              # TypeScript type definitions
-│   ├── utils/              # Utility functions
-│   └── App.tsx             # Main App component
-├── package.json
-├── vite.config.ts
-└── tsconfig.json
-```
-
-## Features to Implement
-
-### Core Pages
-- [ ] Landing page
-- [ ] User authentication (login/register)
-- [ ] Dashboard
-- [ ] Course catalog
-- [ ] Course detail view
-- [ ] Lesson player
-- [ ] Quiz interface
-- [ ] User profile
-- [ ] Progress tracking
-
-### Components
-- [ ] Course cards
-- [ ] Lesson navigation
-- [ ] Video player
-- [ ] Quiz components
-- [ ] Progress bars
-- [ ] Badge display
-- [ ] Navigation header
-- [ ] Footer
-
-### API Integration
-- [ ] User management endpoints
-- [ ] Course CRUD operations
-- [ ] Lesson content delivery
-- [ ] Progress tracking
-- [ ] Quiz submission
-- [ ] Badge system
-
-## Backend API Endpoints
-
-The backend API will be available at: http://localhost:8000
-
-- Users: `/api/v1/users`
-- Courses: `/api/v1/courses`
-- Lessons: `/api/v1/lessons`
-- API Documentation: `/docs`
-
-## Tech Stack
-
-- **React 18** - UI framework
-- **TypeScript** - Type safety
-- **Vite** - Build tool and dev server
-- **React Query** - Server state management
-- **React Router** - Client-side routing
-- **Axios** - HTTP client
-- **Tailwind CSS** - Styling
-- **Headless UI** - Accessible UI components
-- **Heroicons** - Icon library
-
-## Development Workflow
-
-1. Start backend server: `cd backend && python -m app.main`
-2. Start frontend dev server: `cd frontend && npm run dev`
-3. Access the application at: http://localhost:5173
-4. API documentation at: http://localhost:8000/docs
