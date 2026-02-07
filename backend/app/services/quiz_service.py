@@ -232,13 +232,21 @@ async def complete_quiz_attempt(
     if quiz:
         await update_enrollment_progress(quiz.course_id, attempt.user_id, db)
     
+    # Calculate total possible points (assuming first attempt for max)
+    total_possible = sum(q.points_first for q in questions)
+    percentage = (correct_count / len(questions) * 100) if questions else 0
+    
     return {
         "attempt_id": attempt.id,
         "quiz_id": attempt.quiz_id,
+        "user_id": attempt.user_id,
+        "status": attempt.status,
         "attempt_number": attempt.attempt_number,
         "total_questions": len(questions),
         "correct_answers": correct_count,
         "earned_points": total_points,
+        "total_possible_points": total_possible,
+        "percentage_score": round(percentage, 2),
         "user_total_points": user.total_points if user else 0,
         "completed_at": attempt.completed_at
     }

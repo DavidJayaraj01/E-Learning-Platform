@@ -10,40 +10,40 @@ class UserRole(str, Enum):
 
 class LessonType(str, Enum):
     """Lesson type enumeration"""
-    VIDEO = "video"
-    DOCUMENT = "document"
-    IMAGE = "image"
-    QUIZ = "quiz"
+    VIDEO = "VIDEO"
+    DOCUMENT = "DOCUMENT"
+    IMAGE = "IMAGE"
+    QUIZ = "QUIZ"
 
 
 class VisibilityType(str, Enum):
     """Course visibility enumeration"""
-    EVERYONE = "everyone"
-    SIGNED_IN = "signed_in"
+    EVERYONE = "EVERYONE"
+    SIGNED_IN = "SIGNED_IN"
 
 
 class AccessType(str, Enum):
     """Course access type enumeration"""
-    OPEN = "open"
-    INVITATION = "invitation"
-    PAYMENT = "payment"
+    OPEN = "OPEN"
+    INVITATION = "INVITATION"
+    PAYMENT = "PAYMENT"
 
 
 class LessonStatus(str, Enum):
     """User lesson progress status enumeration"""
-    NOT_STARTED = "not_started"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
+    NOT_STARTED = "NOT_STARTED"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
 
 
 class EnrollmentStatus(str, Enum):
     """Course enrollment status enumeration"""
-    YET_TO_START = "yet_to_start"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
+    YET_TO_START = "YET_TO_START"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
 
 
 class QuizAttemptStatus(str, Enum):
     """Quiz attempt status enumeration"""
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"

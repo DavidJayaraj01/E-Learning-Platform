@@ -5,7 +5,9 @@ from sqlalchemy import select
 from app.database.config import get_async_session
 from app.models.models import User
 from app.schemas.users import UserCreate, UserResponse
+from app.dependencies.auth import create_access_token
 from pydantic import BaseModel
+from datetime import timedelta
 
 router = APIRouter()
 security = HTTPBearer(auto_error=False)
@@ -53,8 +55,11 @@ async def login(
             detail="Invalid email or password"
         )
     
-    # In production, generate a proper JWT token
-    access_token = f"fake_token_for_{user.id}"
+    # Generate proper JWT token
+    access_token = create_access_token(
+        data={"sub": str(user.id)},
+        expires_delta=timedelta(minutes=30)
+    )
     
     return LoginResponse(
         access_token=access_token,

@@ -62,6 +62,23 @@ class QuizCreate(QuizBase):
     questions: List[QuestionCreate] = []
 
 
+class QuizUpdate(BaseModel):
+    """Quiz update schema"""
+    title: Optional[str] = None
+    order_index: Optional[int] = None
+
+
+class QuestionUpdate(BaseModel):
+    """Question update schema"""
+    question_text: Optional[str] = None
+    order_index: Optional[int] = None
+    points_first: Optional[int] = None
+    points_second: Optional[int] = None
+    points_third: Optional[int] = None
+    points_more: Optional[int] = None
+    options: Optional[List[QuestionOptionCreate]] = None
+
+
 class QuizResponse(QuizBase):
     """Quiz response schema"""
     id: int

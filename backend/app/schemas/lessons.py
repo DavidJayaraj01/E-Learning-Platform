@@ -22,6 +22,7 @@ class LessonCreate(LessonBase):
 class LessonUpdate(BaseModel):
     """Lesson update schema"""
     title: Optional[str] = None
+    lesson_type: Optional[LessonType] = None
     description: Optional[str] = None
     order_index: Optional[int] = None
     duration: Optional[timedelta] = None

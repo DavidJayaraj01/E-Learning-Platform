@@ -34,12 +34,12 @@ const CourseForm: React.FC = () => {
   const [formData, setFormData] = useState<CourseCreate>({
     title: '',
     description: '',
-    image_url: '',
+    image_url: undefined,
     tags: [],
-    website_url: '',
+    website_url: undefined,
     published: false,
-    visibility: 'everyone',
-    access_type: 'open',
+    visibility: 'EVERYONE',
+    access_type: 'OPEN',
     price: 0,
     course_admin_id: user?.id,
   });
@@ -84,11 +84,19 @@ const CourseForm: React.FC = () => {
 
     setIsSaving(true);
     try {
+      // Clean up empty URLs - backend expects valid URL or undefined
+      const submitData = {
+        ...formData,
+        image_url: formData.image_url?.trim() || undefined,
+        website_url: formData.website_url?.trim() || undefined,
+        description: formData.description?.trim() || undefined,
+      };
+      
       if (isEditing && courseId) {
-        await coursesApi.update(parseInt(courseId), formData);
+        await coursesApi.update(parseInt(courseId), submitData);
         toast.success('Course updated successfully');
       } else {
-        const newCourse = await coursesApi.create(formData);
+        const newCourse = await coursesApi.create(submitData);
         toast.success('Course created successfully');
         navigate(`/admin/courses/${newCourse.id}/edit`);
         return;
@@ -289,9 +297,9 @@ const CourseForm: React.FC = () => {
                     <input
                       type="radio"
                       name="visibility"
-                      value="everyone"
-                      checked={formData.visibility === 'everyone'}
-                      onChange={() => setFormData({ ...formData, visibility: 'everyone' })}
+                      value="EVERYONE"
+                      checked={formData.visibility === 'EVERYONE'}
+                      onChange={() => setFormData({ ...formData, visibility: 'EVERYONE' })}
                       className="w-4 h-4 text-[#7E2259] focus:ring-[#7E2259]"
                     />
                     <Globe size={18} className="text-slate-500" />
@@ -304,9 +312,9 @@ const CourseForm: React.FC = () => {
                     <input
                       type="radio"
                       name="visibility"
-                      value="signed_in"
-                      checked={formData.visibility === 'signed_in'}
-                      onChange={() => setFormData({ ...formData, visibility: 'signed_in' })}
+                      value="SIGNED_IN"
+                      checked={formData.visibility === 'SIGNED_IN'}
+                      onChange={() => setFormData({ ...formData, visibility: 'SIGNED_IN' })}
                       className="w-4 h-4 text-[#7E2259] focus:ring-[#7E2259]"
                     />
                     <Users size={18} className="text-slate-500" />
@@ -328,9 +336,9 @@ const CourseForm: React.FC = () => {
                     <input
                       type="radio"
                       name="access"
-                      value="open"
-                      checked={formData.access_type === 'open'}
-                      onChange={() => setFormData({ ...formData, access_type: 'open', price: 0 })}
+                      value="OPEN"
+                      checked={formData.access_type === 'OPEN'}
+                      onChange={() => setFormData({ ...formData, access_type: 'OPEN', price: 0 })}
                       className="w-4 h-4 text-[#7E2259] focus:ring-[#7E2259]"
                     />
                     <Globe size={18} className="text-green-500" />
@@ -343,9 +351,9 @@ const CourseForm: React.FC = () => {
                     <input
                       type="radio"
                       name="access"
-                      value="invitation"
-                      checked={formData.access_type === 'invitation'}
-                      onChange={() => setFormData({ ...formData, access_type: 'invitation', price: 0 })}
+                      value="INVITATION"
+                      checked={formData.access_type === 'INVITATION'}
+                      onChange={() => setFormData({ ...formData, access_type: 'INVITATION', price: 0 })}
                       className="w-4 h-4 text-[#7E2259] focus:ring-[#7E2259]"
                     />
                     <Lock size={18} className="text-yellow-500" />
@@ -358,9 +366,9 @@ const CourseForm: React.FC = () => {
                     <input
                       type="radio"
                       name="access"
-                      value="payment"
-                      checked={formData.access_type === 'payment'}
-                      onChange={() => setFormData({ ...formData, access_type: 'payment' })}
+                      value="PAYMENT"
+                      checked={formData.access_type === 'PAYMENT'}
+                      onChange={() => setFormData({ ...formData, access_type: 'PAYMENT' })}
                       className="w-4 h-4 text-[#7E2259] focus:ring-[#7E2259]"
                     />
                     <DollarSign size={18} className="text-purple-500" />
@@ -374,7 +382,7 @@ const CourseForm: React.FC = () => {
             </div>
 
             {/* Price (shown only for paid access) */}
-            {formData.access_type === 'payment' && (
+            {formData.access_type === 'PAYMENT' && (
               <div className="mt-6">
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
                   <DollarSign size={16} className="inline mr-2" />

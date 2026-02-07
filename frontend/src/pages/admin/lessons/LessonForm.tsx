@@ -14,13 +14,13 @@ import { lessonsApi, coursesApi } from '../../../services/api';
 import type { LessonCreate, LessonUpdate, Course } from '../../../types/api';
 import { toast } from 'sonner';
 
-type LessonType = 'video' | 'document' | 'image' | 'quiz';
+type LessonType = 'VIDEO' | 'DOCUMENT' | 'IMAGE' | 'QUIZ';
 
 const LESSON_TYPES = [
-  { value: 'video', label: 'Video', icon: PlayCircle, color: 'red', description: 'YouTube, Vimeo or uploaded video' },
-  { value: 'document', label: 'Document', icon: FileText, color: 'blue', description: 'PDF, text, or rich content' },
-  { value: 'image', label: 'Image', icon: ImageIcon, color: 'green', description: 'Image with description' },
-  { value: 'quiz', label: 'Quiz', icon: HelpCircle, color: 'purple', description: 'Interactive quiz lesson' },
+  { value: 'VIDEO', label: 'Video', icon: PlayCircle, color: 'red', description: 'YouTube, Vimeo or uploaded video' },
+  { value: 'DOCUMENT', label: 'Document', icon: FileText, color: 'blue', description: 'PDF, text, or rich content' },
+  { value: 'IMAGE', label: 'Image', icon: ImageIcon, color: 'green', description: 'Image with description' },
+  { value: 'QUIZ', label: 'Quiz', icon: HelpCircle, color: 'purple', description: 'Interactive quiz lesson' },
 ];
 
 const LessonForm: React.FC = () => {
@@ -34,8 +34,8 @@ const LessonForm: React.FC = () => {
 
   const [formData, setFormData] = useState({
     title: '',
-    lesson_type: 'document',
-    content_text: '',
+    lesson_type: 'DOCUMENT' as 'VIDEO' | 'DOCUMENT' | 'IMAGE' | 'QUIZ',
+    description: '',
     video_url: '',
     duration: '',
     order_index: 0,
@@ -64,8 +64,8 @@ const LessonForm: React.FC = () => {
       setFormData({
         title: lesson.title,
         lesson_type: lesson.lesson_type,
-        content_text: lesson.content_text || '',
-        video_url: lesson.video_url || '',
+        description: lesson.description || '',
+        video_url: lesson.video?.url || '',
         duration: lesson.duration || '',
         order_index: lesson.order_index,
       });
@@ -81,13 +81,14 @@ const LessonForm: React.FC = () => {
     setIsSaving(true);
 
     try {
+      // Parse duration to seconds for backend
+      const durationInSeconds = formData.duration ? parseInt(formData.duration) * 60 : undefined;
+      
       if (isEditing) {
         const updateData: LessonUpdate = {
           title: formData.title,
-          lesson_type: formData.lesson_type as LessonType,
-          content_text: formData.content_text || undefined,
-          video_url: formData.video_url || undefined,
-          duration: formData.duration || undefined,
+          lesson_type: formData.lesson_type,
+          description: formData.description || undefined,
           order_index: formData.order_index,
         };
         await lessonsApi.update(parseInt(lessonId!), updateData);
@@ -96,10 +97,8 @@ const LessonForm: React.FC = () => {
         const createData: LessonCreate = {
           course_id: parseInt(courseId!),
           title: formData.title,
-          lesson_type: formData.lesson_type as LessonType,
-          content_text: formData.content_text || undefined,
-          video_url: formData.video_url || undefined,
-          duration: formData.duration || undefined,
+          lesson_type: formData.lesson_type,
+          description: formData.description || undefined,
           order_index: formData.order_index,
         };
         await lessonsApi.create(createData);
@@ -115,10 +114,10 @@ const LessonForm: React.FC = () => {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'video': return { bg: 'bg-red-100', text: 'text-red-600', border: 'border-red-300' };
-      case 'document': return { bg: 'bg-blue-100', text: 'text-blue-600', border: 'border-blue-300' };
-      case 'image': return { bg: 'bg-green-100', text: 'text-green-600', border: 'border-green-300' };
-      case 'quiz': return { bg: 'bg-purple-100', text: 'text-purple-600', border: 'border-purple-300' };
+      case 'VIDEO': return { bg: 'bg-red-100', text: 'text-red-600', border: 'border-red-300' };
+      case 'DOCUMENT': return { bg: 'bg-blue-100', text: 'text-blue-600', border: 'border-blue-300' };
+      case 'IMAGE': return { bg: 'bg-green-100', text: 'text-green-600', border: 'border-green-300' };
+      case 'QUIZ': return { bg: 'bg-purple-100', text: 'text-purple-600', border: 'border-purple-300' };
       default: return { bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-300' };
     }
   };
@@ -272,7 +271,7 @@ const LessonForm: React.FC = () => {
           </div>
 
           {/* Video URL (shown for video type) */}
-          {formData.lesson_type === 'video' && (
+          {formData.lesson_type === 'VIDEO' && (
             <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
               <h2 className="font-bold text-slate-900 mb-4">Video Content</h2>
               <div>
@@ -297,17 +296,17 @@ const LessonForm: React.FC = () => {
           )}
 
           {/* Content Text (for document, image types) */}
-          {(formData.lesson_type === 'document' || formData.lesson_type === 'image') && (
+          {(formData.lesson_type === 'DOCUMENT' || formData.lesson_type === 'IMAGE') && (
             <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
               <h2 className="font-bold text-slate-900 mb-4">
-                {formData.lesson_type === 'document' ? 'Document Content' : 'Image Description'}
+                {formData.lesson_type === 'DOCUMENT' ? 'Document Content' : 'Image Description'}
               </h2>
               <textarea
-                value={formData.content_text}
-                onChange={(e) => setFormData({ ...formData, content_text: e.target.value })}
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={10}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#7E2259]/20 focus:border-[#7E2259] transition-colors resize-none"
-                placeholder={formData.lesson_type === 'document' 
+                placeholder={formData.lesson_type === 'DOCUMENT' 
                   ? 'Enter the lesson content here. You can use markdown formatting...'
                   : 'Enter a description for the image content...'}
               />
@@ -318,7 +317,7 @@ const LessonForm: React.FC = () => {
           )}
 
           {/* Quiz Type Notice */}
-          {formData.lesson_type === 'quiz' && (
+          {formData.lesson_type === 'QUIZ' && (
             <div className="bg-purple-50 border border-purple-200 rounded-xl p-6">
               <div className="flex items-start gap-4">
                 <div className="p-2 bg-purple-100 rounded-lg">
@@ -331,8 +330,8 @@ const LessonForm: React.FC = () => {
                     you can add questions through the course quiz management section.
                   </p>
                   <textarea
-                    value={formData.content_text}
-                    onChange={(e) => setFormData({ ...formData, content_text: e.target.value })}
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows={3}
                     className="w-full mt-4 px-4 py-3 rounded-xl border border-purple-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-colors resize-none"
                     placeholder="Optional: Enter instructions or description for this quiz lesson..."

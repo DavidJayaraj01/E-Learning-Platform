@@ -6,8 +6,35 @@ from app.database.config import get_async_session
 from app.models.models import User, UserBadge, Badge
 from app.schemas.users import UserCreate, UserResponse, UserUpdate
 from app.schemas.misc import BadgeResponse
+from app.dependencies.auth import get_current_active_user
 
 router = APIRouter()
+
+
+@router.get("/me", response_model=UserResponse)
+async def get_current_user_profile(
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get the current authenticated user's profile"""
+    return current_user
+
+
+@router.put("/me", response_model=UserResponse)
+async def update_current_user_profile(
+    user_update: UserUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_async_session)
+):
+    """Update the current user's profile"""
+    # Update fields
+    update_data = user_update.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(current_user, field, value)
+    
+    await db.commit()
+    await db.refresh(current_user)
+    
+    return current_user
 
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)

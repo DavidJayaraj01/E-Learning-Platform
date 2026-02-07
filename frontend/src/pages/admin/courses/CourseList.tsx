@@ -155,7 +155,7 @@ const CourseList: React.FC = () => {
               <DollarSign className="text-purple-600" size={24} />
             </div>
             <div>
-              <p className="text-2xl font-bold text-slate-900">{courses.filter(c => c.access_type === 'payment').length}</p>
+              <p className="text-2xl font-bold text-slate-900">{courses.filter(c => c.access_type === 'PAYMENT').length}</p>
               <p className="text-sm text-slate-500">Paid Courses</p>
             </div>
           </div>
@@ -212,11 +212,11 @@ const CourseList: React.FC = () => {
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                          course.access_type === 'open' ? 'bg-blue-50 text-blue-700' :
-                          course.access_type === 'payment' ? 'bg-purple-50 text-purple-700' :
+                          course.access_type === 'OPEN' ? 'bg-blue-50 text-blue-700' :
+                          course.access_type === 'PAYMENT' ? 'bg-purple-50 text-purple-700' :
                           'bg-slate-100 text-slate-600'
                         }`}>
-                          {course.access_type.charAt(0).toUpperCase() + course.access_type.slice(1)}
+                          {course.access_type.charAt(0).toUpperCase() + course.access_type.slice(1).toLowerCase()}
                         </span>
                       </td>
                       <td className="px-6 py-4">

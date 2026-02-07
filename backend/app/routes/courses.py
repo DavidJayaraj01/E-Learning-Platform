@@ -6,6 +6,7 @@ from typing import List, Optional
 from app.database.config import get_async_session
 from app.models.models import Course, Lesson, Quiz, CourseEnrollment, CourseReview, User
 from app.schemas.courses import CourseCreate, CourseResponse, CourseUpdate
+from app.dependencies.auth import get_current_active_user
 
 router = APIRouter()
 
@@ -210,10 +211,12 @@ async def delete_course(
 @router.post("/{course_id}/enroll", status_code=status.HTTP_201_CREATED)
 async def enroll_in_course(
     course_id: int,
-    user_id: int,  # In production, get from authenticated user
-    db: AsyncSession = Depends(get_async_session)
+    db: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_active_user)
 ):
-    """Enroll user in course"""
+    """Enroll current user in course"""
+    user_id = current_user.id
+    
     # Check if course exists
     course_result = await db.execute(select(Course).where(Course.id == course_id))
     course = course_result.scalars().first()

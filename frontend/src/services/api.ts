@@ -392,27 +392,33 @@ export const reviewsApi = {
     return apiRequest<CourseReview[]>(`/courses/${courseId}/reviews`);
   },
 
-  async create(data: CourseReviewCreate): Promise<CourseReview> {
-    return apiRequest<CourseReview>('/reviews/', {
+  async create(courseId: number, data: Omit<CourseReviewCreate, 'course_id'>): Promise<CourseReview> {
+    return apiRequest<CourseReview>(`/courses/${courseId}/reviews`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
   async update(
-    reviewId: number,
+    courseId: number,
     data: Partial<CourseReviewCreate>
   ): Promise<CourseReview> {
-    return apiRequest<CourseReview>(`/reviews/${reviewId}`, {
+    return apiRequest<CourseReview>(`/courses/${courseId}/reviews`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   },
 
-  async delete(reviewId: number): Promise<void> {
-    return apiRequest<void>(`/reviews/${reviewId}`, {
+  async delete(courseId: number): Promise<void> {
+    return apiRequest<void>(`/courses/${courseId}/reviews`, {
       method: 'DELETE',
     });
+  },
+
+  async getRating(courseId: number): Promise<{ course_id: number; average_rating: number; total_reviews: number }> {
+    return apiRequest<{ course_id: number; average_rating: number; total_reviews: number }>(
+      `/courses/${courseId}/rating`
+    );
   },
 };
 
@@ -480,7 +486,7 @@ export const ragApi = {
       difficulty_level: options.difficulty_level,
     };
     
-    return apiRequest<CourseGenerationJob>('/rag/generate/start', {
+    return apiRequest<CourseGenerationJob>('/rag/generate', {
       method: 'POST',
       body: JSON.stringify({
         document_id: documentId,
@@ -490,21 +496,36 @@ export const ragApi = {
   },
 
   async getJob(jobId: number): Promise<CourseGenerationJob> {
-    return apiRequest<CourseGenerationJob>(`/rag/generate/jobs/${jobId}`);
+    return apiRequest<CourseGenerationJob>(`/rag/generate/${jobId}`);
   },
 
   async listJobs(): Promise<CourseGenerationJob[]> {
     return apiRequest<CourseGenerationJob[]>('/rag/generate/jobs');
   },
 
+  async cancelJob(jobId: number): Promise<void> {
+    return apiRequest<void>(`/rag/generate/${jobId}`, {
+      method: 'DELETE',
+    });
+  },
+
   async getConfiguration(): Promise<RAGConfiguration> {
-    return apiRequest<RAGConfiguration>('/rag/configuration');
+    return apiRequest<RAGConfiguration>('/rag/config');
+  },
+
+  async createConfiguration(
+    config: Partial<RAGConfiguration>
+  ): Promise<RAGConfiguration> {
+    return apiRequest<RAGConfiguration>('/rag/config', {
+      method: 'POST',
+      body: JSON.stringify(config),
+    });
   },
 
   async updateConfiguration(
     config: Partial<RAGConfiguration>
   ): Promise<RAGConfiguration> {
-    return apiRequest<RAGConfiguration>('/rag/configuration', {
+    return apiRequest<RAGConfiguration>('/rag/config', {
       method: 'PUT',
       body: JSON.stringify(config),
     });

@@ -24,7 +24,7 @@ const LESSON_DATA = [
     {
         id: 1,
         title: "Advanced Sales & CRM Automation in Odoo",
-        type: 'video',
+        type: 'VIDEO',
         duration: "45:00",
         description: "[Additional attachment should be visible here]",
         isActive: false,
@@ -33,7 +33,7 @@ const LESSON_DATA = [
     {
         id: 2,
         title: "Document",
-        type: 'document',
+        type: 'DOCUMENT',
         duration: "10 min",
         description: "[Additional attachment should be visible here]",
         isActive: true, // Default active for this view
@@ -42,7 +42,7 @@ const LESSON_DATA = [
     {
         id: 3,
         title: "Quiz", // Renamed to match UI
-        type: 'quiz',
+        type: 'QUIZ',
         duration: "20 min",
         isActive: false,
         isCompleted: false,
@@ -183,7 +183,7 @@ const LessonView: React.FC = () => {
                 </header>
 
                 <div className="max-w-5xl mx-auto w-full p-8">
-                    {activeLesson.type === 'quiz' ? (
+                    {activeLesson.type === 'QUIZ' ? (
                         /* Quiz View */
                         <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-[0_2px_20px_rgb(0,0,0,0.02)] border border-slate-100 min-h-[600px] flex flex-col justify-center">
                             {!quizStarted ? (
@@ -295,7 +295,7 @@ const LessonView: React.FC = () => {
                                 </div>
                             )}
                         </div>
-                    ) : (activeLesson.type === 'document' ? (
+                    ) : (activeLesson.type === 'DOCUMENT' ? (
                         /* Document View */
                         <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-[0_2px_20px_rgb(0,0,0,0.02)]">
                             <div className="flex items-center justify-between mb-8">

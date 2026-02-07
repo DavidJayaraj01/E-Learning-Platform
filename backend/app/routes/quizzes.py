@@ -14,13 +14,15 @@ Endpoints:
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from typing import List
 
 from app.database.config import get_async_session
-from app.models.models import Quiz, QuizAttempt, Course, User
+from app.models.models import Quiz, QuizAttempt, Course, User, QuizQuestion, QuestionOption
 from app.schemas.quizzes import (
-    QuizCreate, QuizResponse, QuizWithQuestions,
-    QuizAttemptResponse, AnswerSubmit, AttemptResultResponse
+    QuizCreate, QuizResponse, QuizWithQuestions, QuizUpdate,
+    QuizAttemptResponse, AnswerSubmit, AttemptResultResponse,
+    QuestionCreate, QuestionResponse, QuestionUpdate, QuestionOptionCreate
 )
 from app.dependencies.auth import get_current_active_user, require_instructor_or_admin
 from app.services.quiz_service import (
@@ -30,6 +32,37 @@ from app.services.quiz_service import (
 from app.services.access_control_service import can_access_course
 
 router = APIRouter()
+
+
+# =============================================================================
+# QUIZ CRUD ENDPOINTS
+# =============================================================================
+
+@router.get("/course/{course_id}", response_model=List[QuizResponse])
+async def get_course_quizzes(
+    course_id: int,
+    db: AsyncSession = Depends(get_async_session)
+):
+    """
+    Get all quizzes for a specific course.
+    """
+    # Verify course exists
+    course_result = await db.execute(select(Course).where(Course.id == course_id))
+    if not course_result.scalars().first():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Course not found"
+        )
+    
+    result = await db.execute(
+        select(Quiz)
+        .where(Quiz.course_id == course_id)
+        .options(selectinload(Quiz.questions).selectinload(QuizQuestion.options))
+        .order_by(Quiz.order_index)
+    )
+    quizzes = result.scalars().all()
+    
+    return quizzes
 
 
 @router.post("/", response_model=QuizResponse, status_code=status.HTTP_201_CREATED)
@@ -61,10 +94,17 @@ async def create_quiz(
         )
     
     # Create quiz
-    db_quiz = Quiz(**quiz_data.dict())
+    db_quiz = Quiz(**quiz_data.dict(exclude={"questions"}))
     db.add(db_quiz)
     await db.commit()
-    await db.refresh(db_quiz)
+    
+    # Eagerly load the questions relationship for the response
+    result = await db.execute(
+        select(Quiz)
+        .where(Quiz.id == db_quiz.id)
+        .options(selectinload(Quiz.questions).selectinload(QuizQuestion.options))
+    )
+    db_quiz = result.scalars().first()
     
     return db_quiz
 
@@ -79,8 +119,12 @@ async def get_quiz(
     Get quiz with all questions and options.
     User must have access to the course.
     """
-    # Get quiz
-    quiz_result = await db.execute(select(Quiz).where(Quiz.id == quiz_id))
+    # Get quiz with eager loading
+    quiz_result = await db.execute(
+        select(Quiz)
+        .where(Quiz.id == quiz_id)
+        .options(selectinload(Quiz.questions).selectinload(QuizQuestion.options))
+    )
     quiz = quiz_result.scalars().first()
     
     if not quiz:
@@ -263,3 +307,189 @@ async def get_attempt_details(
         )
     
     return results
+
+
+# =============================================================================
+# QUIZ UPDATE/DELETE ENDPOINTS
+# =============================================================================
+
+@router.put("/{quiz_id}", response_model=QuizResponse)
+async def update_quiz(
+    quiz_id: int,
+    quiz_update: QuizUpdate,
+    db: AsyncSession = Depends(get_async_session)
+):
+    """
+    Update a quiz.
+    """
+    result = await db.execute(select(Quiz).where(Quiz.id == quiz_id))
+    quiz = result.scalars().first()
+    
+    if not quiz:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Quiz not found"
+        )
+    
+    # Update fields
+    update_data = quiz_update.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(quiz, field, value)
+    
+    await db.commit()
+    
+    # Re-fetch with eager loading
+    result = await db.execute(
+        select(Quiz)
+        .where(Quiz.id == quiz_id)
+        .options(selectinload(Quiz.questions).selectinload(QuizQuestion.options))
+    )
+    quiz = result.scalars().first()
+    
+    return quiz
+
+
+@router.delete("/{quiz_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_quiz(
+    quiz_id: int,
+    db: AsyncSession = Depends(get_async_session)
+):
+    """
+    Delete a quiz and all its questions.
+    """
+    result = await db.execute(select(Quiz).where(Quiz.id == quiz_id))
+    quiz = result.scalars().first()
+    
+    if not quiz:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Quiz not found"
+        )
+    
+    await db.delete(quiz)
+    await db.commit()
+
+
+# =============================================================================
+# QUESTION CRUD ENDPOINTS
+# =============================================================================
+
+@router.post("/{quiz_id}/questions", response_model=QuestionResponse, status_code=status.HTTP_201_CREATED)
+async def add_question(
+    quiz_id: int,
+    question_data: QuestionCreate,
+    db: AsyncSession = Depends(get_async_session)
+):
+    """
+    Add a question to a quiz.
+    """
+    # Verify quiz exists
+    quiz_result = await db.execute(select(Quiz).where(Quiz.id == quiz_id))
+    quiz = quiz_result.scalars().first()
+    
+    if not quiz:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Quiz not found"
+        )
+    
+    # Create question without options first
+    question_dict = question_data.dict(exclude={'options'})
+    db_question = QuizQuestion(quiz_id=quiz_id, **question_dict)
+    db.add(db_question)
+    await db.commit()
+    await db.refresh(db_question)
+    
+    # Add options
+    for option_data in question_data.options:
+        db_option = QuestionOption(
+            question_id=db_question.id,
+            **option_data.dict()
+        )
+        db.add(db_option)
+    
+    await db.commit()
+    
+    # Re-fetch with eager loading
+    result = await db.execute(
+        select(QuizQuestion)
+        .where(QuizQuestion.id == db_question.id)
+        .options(selectinload(QuizQuestion.options))
+    )
+    db_question = result.scalars().first()
+    
+    return db_question
+
+
+@router.put("/questions/{question_id}", response_model=QuestionResponse)
+async def update_question(
+    question_id: int,
+    question_update: QuestionUpdate,
+    db: AsyncSession = Depends(get_async_session)
+):
+    """
+    Update a quiz question.
+    """
+    result = await db.execute(select(QuizQuestion).where(QuizQuestion.id == question_id))
+    question = result.scalars().first()
+    
+    if not question:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Question not found"
+        )
+    
+    # Update question fields (excluding options)
+    update_data = question_update.dict(exclude_unset=True, exclude={'options'})
+    for field, value in update_data.items():
+        setattr(question, field, value)
+    
+    # If options are provided, replace all options
+    if question_update.options is not None:
+        # Delete existing options
+        existing_options = await db.execute(
+            select(QuestionOption).where(QuestionOption.question_id == question_id)
+        )
+        for option in existing_options.scalars().all():
+            await db.delete(option)
+        
+        # Add new options
+        for option_data in question_update.options:
+            db_option = QuestionOption(
+                question_id=question_id,
+                **option_data.dict()
+            )
+            db.add(db_option)
+    
+    await db.commit()
+    
+    # Re-fetch with eager loading
+    result = await db.execute(
+        select(QuizQuestion)
+        .where(QuizQuestion.id == question_id)
+        .options(selectinload(QuizQuestion.options))
+    )
+    question = result.scalars().first()
+    
+    return question
+
+
+@router.delete("/questions/{question_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_question(
+    question_id: int,
+    db: AsyncSession = Depends(get_async_session)
+):
+    """
+    Delete a quiz question and all its options.
+    """
+    result = await db.execute(select(QuizQuestion).where(QuizQuestion.id == question_id))
+    question = result.scalars().first()
+    
+    if not question:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Question not found"
+        )
+    
+    await db.delete(question)
+    await db.commit()

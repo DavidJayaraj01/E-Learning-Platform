@@ -79,10 +79,10 @@ const LessonList: React.FC = () => {
 
   const getLessonIcon = (type: string) => {
     switch (type) {
-      case 'video': return <PlayCircle className="text-red-500" size={20} />;
-      case 'document': return <FileText className="text-blue-500" size={20} />;
-      case 'image': return <ImageIcon className="text-green-500" size={20} />;
-      case 'quiz': return <HelpCircle className="text-purple-500" size={20} />;
+      case 'VIDEO': return <PlayCircle className="text-red-500" size={20} />;
+      case 'DOCUMENT': return <FileText className="text-blue-500" size={20} />;
+      case 'IMAGE': return <ImageIcon className="text-green-500" size={20} />;
+      case 'QUIZ': return <HelpCircle className="text-purple-500" size={20} />;
       default: return <FileText className="text-slate-400" size={20} />;
     }
   };

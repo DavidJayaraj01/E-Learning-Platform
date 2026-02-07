@@ -35,8 +35,8 @@ export interface Course {
   tags?: string[];
   website_url?: string;
   published: boolean;
-  visibility: 'everyone' | 'signed_in';
-  access_type: 'open' | 'invitation' | 'payment';
+  visibility: 'EVERYONE' | 'SIGNED_IN';
+  access_type: 'OPEN' | 'INVITATION' | 'PAYMENT';
   price: number;
   course_admin_id?: number;
   total_lessons: number;
@@ -52,8 +52,8 @@ export interface CourseCreate {
   tags?: string[];
   website_url?: string;
   published?: boolean;
-  visibility?: 'everyone' | 'signed_in';
-  access_type?: 'open' | 'invitation' | 'payment';
+  visibility?: 'EVERYONE' | 'SIGNED_IN';
+  access_type?: 'OPEN' | 'INVITATION' | 'PAYMENT';
   price?: number;
   course_admin_id?: number;
 }
@@ -65,10 +65,8 @@ export interface Lesson {
   id: number;
   course_id: number;
   title: string;
-  lesson_type: 'video' | 'document' | 'image' | 'quiz';
+  lesson_type: 'VIDEO' | 'DOCUMENT' | 'IMAGE' | 'QUIZ';
   description?: string;
-  content_text?: string;
-  video_url?: string;
   responsible_id?: number;
   order_index: number;
   duration?: string;
@@ -83,16 +81,20 @@ export interface Lesson {
 export interface LessonCreate {
   course_id: number;
   title: string;
-  lesson_type: 'video' | 'document' | 'image' | 'quiz';
+  lesson_type: 'VIDEO' | 'DOCUMENT' | 'IMAGE' | 'QUIZ';
   description?: string;
-  content_text?: string;
-  video_url?: string;
   responsible_id?: number;
   order_index?: number;
   duration?: string;
 }
 
-export interface LessonUpdate extends Partial<LessonCreate> { }
+export interface LessonUpdate {
+  title?: string;
+  lesson_type?: 'VIDEO' | 'DOCUMENT' | 'IMAGE' | 'QUIZ';
+  description?: string;
+  order_index?: number;
+  duration?: string;
+}
 
 // Lesson content types
 export interface LessonVideo {
@@ -191,7 +193,7 @@ export interface CourseEnrollment {
   enrolled_at: string;
   started_at?: string;
   completed_at?: string;
-  status: 'yet_to_start' | 'in_progress' | 'completed';
+  status: 'YET_TO_START' | 'IN_PROGRESS' | 'COMPLETED';
   time_spent: string;
   completion_percentage: number;
 }
@@ -200,7 +202,7 @@ export interface UserLessonProgress {
   id: number;
   user_id: number;
   lesson_id: number;
-  status: 'not_started' | 'in_progress' | 'completed';
+  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
   completed_at?: string;
   time_spent: string;
 }
@@ -210,7 +212,7 @@ export interface QuizAttempt {
   user_id: number;
   quiz_id: number;
   attempt_number: number;
-  status: 'in_progress' | 'completed';
+  status: 'IN_PROGRESS' | 'COMPLETED';
   started_at: string;
   completed_at?: string;
   earned_points: number;
@@ -309,8 +311,8 @@ export interface CourseFilters {
   skip?: number;
   limit?: number;
   published_only?: boolean;
-  visibility?: 'everyone' | 'signed_in';
-  access_type?: 'open' | 'invitation' | 'payment';
+  visibility?: 'EVERYONE' | 'SIGNED_IN';
+  access_type?: 'OPEN' | 'INVITATION' | 'PAYMENT';
   search?: string;
   tags?: string[];
 }
