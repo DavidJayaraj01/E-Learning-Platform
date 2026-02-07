@@ -2,23 +2,28 @@
 export interface User {
   id: number;
   email: string;
-  name: string;
-  role: 'admin' | 'instructor' | 'learner';
-  total_points: number;
+  full_name?: string;
+  name?: string; // Legacy support
+  role: 'admin' | 'instructor' | 'student';
+  is_active: boolean;
+  total_points?: number;
+  enrolled_courses?: number;
+  completed_courses?: number;
   created_at: string;
 }
 
 export interface UserCreate {
   email: string;
-  name: string;
   password: string;
-  role?: 'admin' | 'instructor' | 'learner';
+  full_name?: string;
+  role?: 'admin' | 'instructor' | 'student';
 }
 
 export interface UserUpdate {
-  email?: string;
-  name?: string;
-  role?: 'admin' | 'instructor' | 'learner';
+  full_name?: string;
+  password?: string;
+  role?: 'admin' | 'instructor' | 'student';
+  is_active?: boolean;
 }
 
 // Course types
@@ -62,6 +67,8 @@ export interface Lesson {
   title: string;
   lesson_type: 'video' | 'document' | 'image' | 'quiz';
   description?: string;
+  content_text?: string;
+  video_url?: string;
   responsible_id?: number;
   order_index: number;
   duration?: string;
@@ -78,8 +85,10 @@ export interface LessonCreate {
   title: string;
   lesson_type: 'video' | 'document' | 'image' | 'quiz';
   description?: string;
+  content_text?: string;
+  video_url?: string;
   responsible_id?: number;
-  order_index: number;
+  order_index?: number;
   duration?: string;
 }
 
@@ -116,26 +125,54 @@ export interface Quiz {
   id: number;
   course_id: number;
   title: string;
+  description?: string;
   order_index: number;
+  time_limit?: number;
+  passing_score: number;
+  is_active: boolean;
   questions?: QuizQuestion[];
 }
 
 export interface QuizCreate {
   course_id: number;
   title: string;
-  order_index: number;
+  description?: string;
+  order_index?: number;
+  time_limit?: number;
+  passing_score?: number;
+  is_active?: boolean;
+}
+
+export interface QuizUpdate {
+  title?: string;
+  description?: string;
+  order_index?: number;
+  time_limit?: number;
+  passing_score?: number;
+  is_active?: boolean;
 }
 
 export interface QuizQuestion {
   id: number;
   quiz_id: number;
   question_text: string;
+  question_type: 'multiple_choice' | 'true_false' | 'open_ended';
   order_index: number;
-  points_first: number;
-  points_second: number;
-  points_third: number;
-  points_more: number;
-  options: QuestionOption[];
+  points: number;
+  answers?: QuestionAnswer[];
+  // Legacy support
+  points_first?: number;
+  points_second?: number;
+  points_third?: number;
+  points_more?: number;
+  options?: QuestionOption[];
+}
+
+export interface QuestionAnswer {
+  id?: number;
+  question_id?: number;
+  answer_text: string;
+  is_correct: boolean;
 }
 
 export interface QuestionOption {
@@ -309,4 +346,84 @@ export interface ApiError {
   detail: string;
   field?: string;
   code?: string;
+}
+
+// RAG Document types
+export interface UploadedDocument {
+  id: number;
+  user_id: number;
+  filename: string;
+  original_filename: string;
+  file_path: string;
+  file_type: string;
+  file_size: number;
+  status: 'pending' | 'processing' | 'processed' | 'failed';
+  error_message?: string;
+  title?: string;
+  author?: string;
+  total_pages?: number;
+  total_chunks: number;
+  uploaded_at: string;
+  processed_at?: string;
+}
+
+export interface DocumentChunk {
+  id: number;
+  document_id: number;
+  chunk_index: number;
+  content: string;
+  page_number?: number;
+  chapter?: string;
+  section?: string;
+  token_count?: number;
+}
+
+// Course Generation types
+export interface CourseGenerationJob {
+  id: number;
+  document_id: number;
+  user_id: number;
+  status: 'pending' | 'analyzing' | 'generating_structure' | 'generating_content' | 'generating_quizzes' | 'completed' | 'failed';
+  progress_percentage: number;
+  current_step?: string;
+  error_message?: string;
+  settings: GenerationSettings;
+  generated_outline?: any;
+  generated_lessons?: any;
+  generated_quizzes?: any;
+  generated_course_id?: number;
+  created_at: string;
+  started_at?: string;
+  completed_at?: string;
+}
+
+export interface GenerationSettings {
+  course_title?: string;
+  course_description?: string;
+  max_lessons?: number;
+  target_lessons?: number;
+  include_quizzes?: boolean;
+  quiz_questions_per_lesson?: number;
+  lesson_duration_minutes?: number;
+  difficulty_level?: 'beginner' | 'intermediate' | 'advanced';
+  llm_provider?: 'ollama' | 'openai' | 'gemini';
+}
+
+// RAG Configuration types
+export interface RAGConfiguration {
+  id: number;
+  user_id?: number;
+  embedding_model: string;
+  chunk_size: number;
+  chunk_overlap: number;
+  llm_provider: 'ollama' | 'openai' | 'gemini';
+  llm_model: string;
+  temperature: number;
+  max_tokens: number;
+  top_k_chunks: number;
+  similarity_threshold: number;
+  default_lessons_per_course: number;
+  default_quiz_questions: number;
+  created_at: string;
+  updated_at: string;
 }

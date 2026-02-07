@@ -1,112 +1,514 @@
 import type {
   User,
-  LoginRequest, LoginResponse, RegisterRequest
+  Course,
+  CourseCreate,
+  CourseUpdate,
+  Lesson,
+  LessonCreate,
+  LessonUpdate,
+  Quiz,
+  QuizCreate,
+  QuizUpdate,
+  QuizQuestion,
+  QuizAttempt,
+  CourseEnrollment,
+  UserLessonProgress,
+  CourseReview,
+  CourseReviewCreate,
+  Badge,
+  LoginRequest,
+  LoginResponse,
+  RegisterRequest,
+  CourseFilters,
+  UserFilters,
+  UploadedDocument,
+  CourseGenerationJob,
+  RAGConfiguration,
 } from '../types/api';
 
-// MOCK API IMPLEMENTATION
-// We use localStorage to simulate a persistent database for the frontend
-const DB_KEY = 'edu_platform_users_db';
-const SESSION_KEY = 'edu_platform_current_session';
+// API Configuration
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 class ApiError extends Error {
   status: number;
+  data?: any;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, data?: any) {
     super(message);
     this.status = status;
+    this.data = data;
     this.name = 'ApiError';
   }
 }
 
-// Helper to get DB
-const getDb = (): User[] => {
-  const db = localStorage.getItem(DB_KEY);
-  return db ? JSON.parse(db) : [];
-};
+// Helper function for API requests
+async function apiRequest<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const token = localStorage.getItem('access_token');
 
-// Helper to save DB
-const saveDb = (users: User[]) => {
-  localStorage.setItem(DB_KEY, JSON.stringify(users));
-};
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` }),
+    ...options.headers,
+  };
 
-// Authentication API (Mocked)
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new ApiError(
+      response.status,
+      errorData.detail || errorData.message || 'An error occurred',
+      errorData
+    );
+  }
+
+  // Handle 204 No Content
+  if (response.status === 204) {
+    return {} as T;
+  }
+
+  return response.json();
+}
+
+// File upload helper
+async function uploadFile(
+  endpoint: string,
+  file: File,
+  additionalData?: Record<string, string>
+): Promise<any> {
+  const token = localStorage.getItem('access_token');
+  const formData = new FormData();
+  formData.append('file', file);
+
+  if (additionalData) {
+    Object.entries(additionalData).forEach(([key, value]) => {
+      formData.append(key, value);
+    });
+  }
+
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: 'POST',
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new ApiError(
+      response.status,
+      errorData.detail || 'Upload failed',
+      errorData
+    );
+  }
+
+  return response.json();
+}
+
+// Authentication API
 export const authApi = {
   async login(credentials: LoginRequest): Promise<LoginResponse> {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 600));
-
-    const db = getDb();
-    let user = db.find(u => u.email.toLowerCase() === credentials.email.toLowerCase());
-
-    if (!user) {
-      // For demo purposes, if user doesn't exist, create one ad-hoc based on email pattern
-      // This allows direct login without registration for testing
-      const isAdmin = credentials.email.toLowerCase().includes('admin');
-
-      user = {
-        id: Math.floor(Math.random() * 10000),
-        email: credentials.email,
-        name: credentials.email.split('@')[0],
-        role: isAdmin ? 'admin' : 'learner',
-        total_points: isAdmin ? 9999 : 0,
-        created_at: new Date().toISOString()
-      };
-
-      // Save this ad-hoc user to DB so they persist
-      const newDb = [...db, user];
-      saveDb(newDb);
-    }
-
-    // Create session
-    localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-
-    return {
-      access_token: 'mock_jwt_' + Date.now(),
-      token_type: 'bearer',
-      user: user
-    };
+    const response = await apiRequest<LoginResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
+    localStorage.setItem('access_token', response.access_token);
+    return response;
   },
 
   async register(userData: RegisterRequest): Promise<User> {
-    await new Promise(resolve => setTimeout(resolve, 600));
-
-    const db = getDb();
-    if (db.find(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
-      throw new ApiError(400, 'User with this email already exists');
-    }
-
-    const newUser: User = {
-      id: Math.floor(Math.random() * 10000),
-      email: userData.email,
-      name: userData.name,
-      role: userData.role || 'learner', // Respect the selected role
-      total_points: 0,
-      created_at: new Date().toISOString()
-    };
-
-    // Save to DB
-    saveDb([...db, newUser]);
-
-    return newUser;
+    return apiRequest<User>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
   },
 
   async getProfile(): Promise<User> {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 300));
+    return apiRequest<User>('/users/me');
+  },
 
-    // Get from session
-    const sessionUser = localStorage.getItem(SESSION_KEY);
-    if (!sessionUser) {
-      throw new ApiError(401, 'Unauthorized');
+  logout(): void {
+    localStorage.removeItem('access_token');
+  },
+};
+
+// Users API
+export const usersApi = {
+  async getAll(filters?: UserFilters): Promise<User[]> {
+    const params = new URLSearchParams();
+    if (filters?.skip) params.append('skip', filters.skip.toString());
+    if (filters?.limit) params.append('limit', filters.limit.toString());
+    if (filters?.role) params.append('role', filters.role);
+    if (filters?.search) params.append('search', filters.search);
+
+    const queryString = params.toString();
+    return apiRequest<User[]>(`/users${queryString ? `?${queryString}` : ''}`);
+  },
+
+  async list(filters?: UserFilters): Promise<User[]> {
+    return this.getAll(filters);
+  },
+
+  async get(userId: number): Promise<User> {
+    return apiRequest<User>(`/users/${userId}`);
+  },
+
+  async create(data: { email: string; password: string; full_name?: string; role?: string }): Promise<User> {
+    return apiRequest<User>('/users/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async update(userId: number, data: Partial<User>): Promise<User> {
+    return apiRequest<User>(`/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async delete(userId: number): Promise<void> {
+    return apiRequest<void>(`/users/${userId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async updateProfile(data: { full_name?: string }): Promise<User> {
+    return apiRequest<User>('/users/me', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    return apiRequest<void>('/users/me/password', {
+      method: 'PUT',
+      body: JSON.stringify({
+        current_password: currentPassword,
+        new_password: newPassword,
+      }),
+    });
+  },
+
+  async getBadges(userId: number): Promise<Badge[]> {
+    return apiRequest<Badge[]>(`/users/${userId}/badges`);
+  },
+};
+
+// Courses API
+export const coursesApi = {
+  async list(filters?: CourseFilters): Promise<Course[]> {
+    const params = new URLSearchParams();
+    if (filters?.skip) params.append('skip', filters.skip.toString());
+    if (filters?.limit) params.append('limit', filters.limit.toString());
+    if (filters?.published_only !== undefined)
+      params.append('published_only', filters.published_only.toString());
+    if (filters?.search) params.append('search', filters.search);
+
+    const queryString = params.toString();
+    return apiRequest<Course[]>(`/courses${queryString ? `?${queryString}` : ''}`);
+  },
+
+  async get(courseId: number): Promise<Course> {
+    return apiRequest<Course>(`/courses/${courseId}`);
+  },
+
+  async getDetails(courseId: number): Promise<any> {
+    return apiRequest<any>(`/courses/${courseId}/details`);
+  },
+
+  async create(data: CourseCreate): Promise<Course> {
+    return apiRequest<Course>('/courses/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async update(courseId: number, data: CourseUpdate): Promise<Course> {
+    return apiRequest<Course>(`/courses/${courseId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async delete(courseId: number): Promise<void> {
+    return apiRequest<void>(`/courses/${courseId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async enroll(courseId: number, userId: number): Promise<any> {
+    return apiRequest<any>(`/courses/${courseId}/enroll?user_id=${userId}`, {
+      method: 'POST',
+    });
+  },
+
+  async getEnrollments(courseId: number): Promise<CourseEnrollment[]> {
+    return apiRequest<CourseEnrollment[]>(`/courses/${courseId}/enrollments`);
+  },
+};
+
+// Lessons API
+export const lessonsApi = {
+  async getByCourse(courseId: number): Promise<Lesson[]> {
+    return apiRequest<Lesson[]>(`/lessons/course/${courseId}`);
+  },
+
+  async get(lessonId: number): Promise<Lesson> {
+    return apiRequest<Lesson>(`/lessons/${lessonId}`);
+  },
+
+  async getWithContent(lessonId: number): Promise<Lesson> {
+    return apiRequest<Lesson>(`/lessons/${lessonId}`);
+  },
+
+  async create(data: LessonCreate): Promise<Lesson> {
+    return apiRequest<Lesson>('/lessons/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async update(lessonId: number, data: LessonUpdate): Promise<Lesson> {
+    return apiRequest<Lesson>(`/lessons/${lessonId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async delete(lessonId: number): Promise<void> {
+    return apiRequest<void>(`/lessons/${lessonId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async complete(lessonId: number, userId: number): Promise<UserLessonProgress> {
+    return apiRequest<UserLessonProgress>(
+      `/lessons/${lessonId}/complete?user_id=${userId}`,
+      {
+        method: 'POST',
+      }
+    );
+  },
+};
+
+// Quizzes API
+export const quizzesApi = {
+  async getByCourse(courseId: number): Promise<Quiz[]> {
+    return apiRequest<Quiz[]>(`/quizzes/course/${courseId}`);
+  },
+
+  async get(quizId: number): Promise<Quiz> {
+    return apiRequest<Quiz>(`/quizzes/${quizId}`);
+  },
+
+  async create(data: QuizCreate): Promise<Quiz> {
+    return apiRequest<Quiz>('/quizzes/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async update(quizId: number, data: QuizUpdate): Promise<Quiz> {
+    return apiRequest<Quiz>(`/quizzes/${quizId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async delete(quizId: number): Promise<void> {
+    return apiRequest<void>(`/quizzes/${quizId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async addQuestion(
+    quizId: number,
+    data: Partial<QuizQuestion>
+  ): Promise<QuizQuestion> {
+    return apiRequest<QuizQuestion>(`/quizzes/${quizId}/questions`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async updateQuestion(
+    questionId: number,
+    data: Partial<QuizQuestion>
+  ): Promise<QuizQuestion> {
+    return apiRequest<QuizQuestion>(`/quizzes/questions/${questionId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async deleteQuestion(questionId: number): Promise<void> {
+    return apiRequest<void>(`/quizzes/questions/${questionId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async startAttempt(quizId: number): Promise<QuizAttempt> {
+    return apiRequest<QuizAttempt>(`/quizzes/${quizId}/start`, {
+      method: 'POST',
+    });
+  },
+
+  async submitAnswer(
+    attemptId: number,
+    questionId: number,
+    selectedOptionId: number
+  ): Promise<any> {
+    return apiRequest<any>(`/quizzes/attempts/${attemptId}/answer`, {
+      method: 'POST',
+      body: JSON.stringify({
+        question_id: questionId,
+        selected_option_id: selectedOptionId,
+      }),
+    });
+  },
+
+  async completeAttempt(attemptId: number): Promise<any> {
+    return apiRequest<any>(`/quizzes/attempts/${attemptId}/complete`, {
+      method: 'POST',
+    });
+  },
+
+  async getAttempts(quizId: number): Promise<QuizAttempt[]> {
+    return apiRequest<QuizAttempt[]>(`/quizzes/${quizId}/attempts`);
+  },
+};
+
+// Reviews API
+export const reviewsApi = {
+  async getByCourse(courseId: number): Promise<CourseReview[]> {
+    return apiRequest<CourseReview[]>(`/courses/${courseId}/reviews`);
+  },
+
+  async create(data: CourseReviewCreate): Promise<CourseReview> {
+    return apiRequest<CourseReview>('/reviews/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async update(
+    reviewId: number,
+    data: Partial<CourseReviewCreate>
+  ): Promise<CourseReview> {
+    return apiRequest<CourseReview>(`/reviews/${reviewId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async delete(reviewId: number): Promise<void> {
+    return apiRequest<void>(`/reviews/${reviewId}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// RAG Generation API
+export const ragApi = {
+  async uploadDocument(file: File): Promise<UploadedDocument> {
+    return uploadFile('/rag/documents/upload', file);
+  },
+
+  async listDocuments(
+    skip = 0,
+    limit = 50,
+    statusFilter?: string
+  ): Promise<{ documents: UploadedDocument[]; total_count: number }> {
+    const params = new URLSearchParams();
+    params.append('skip', skip.toString());
+    params.append('limit', limit.toString());
+    if (statusFilter) params.append('status_filter', statusFilter);
+
+    return apiRequest<{ documents: UploadedDocument[]; total_count: number }>(
+      `/rag/documents?${params.toString()}`
+    );
+  },
+
+  async getDocument(documentId: number): Promise<UploadedDocument> {
+    return apiRequest<UploadedDocument>(`/rag/documents/${documentId}`);
+  },
+
+  async processDocument(documentId: number): Promise<any> {
+    return apiRequest<any>(`/rag/documents/${documentId}/process`, {
+      method: 'POST',
+    });
+  },
+
+  async deleteDocument(documentId: number): Promise<void> {
+    return apiRequest<void>(`/rag/documents/${documentId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async startGeneration(
+    options: {
+      document_id?: number;
+      document_ids?: number[];
+      course_title?: string;
+      course_description?: string;
+      max_lessons?: number;
+      target_lessons?: number;
+      include_quizzes?: boolean;
+      quiz_questions_per_lesson?: number;
+      lesson_duration_minutes?: number;
+      difficulty_level?: 'beginner' | 'intermediate' | 'advanced';
+      llm_provider?: 'ollama' | 'openai' | 'gemini';
     }
+  ): Promise<CourseGenerationJob> {
+    // Support both single and multiple documents
+    const documentId = options.document_id || (options.document_ids?.[0]);
+    const settings = {
+      course_title: options.course_title,
+      course_description: options.course_description,
+      max_lessons: options.max_lessons || options.target_lessons,
+      include_quizzes: options.include_quizzes,
+      quiz_questions_per_lesson: options.quiz_questions_per_lesson,
+      lesson_duration_minutes: options.lesson_duration_minutes,
+      difficulty_level: options.difficulty_level,
+    };
+    
+    return apiRequest<CourseGenerationJob>('/rag/generate/start', {
+      method: 'POST',
+      body: JSON.stringify({
+        document_id: documentId,
+        settings,
+      }),
+    });
+  },
 
-    // Refresh from DB to get latest state (points, etc)
-    const user = JSON.parse(sessionUser);
-    const db = getDb();
-    const freshUser = db.find(u => u.id === user.id) || user;
+  async getJob(jobId: number): Promise<CourseGenerationJob> {
+    return apiRequest<CourseGenerationJob>(`/rag/generate/jobs/${jobId}`);
+  },
 
-    return freshUser;
-  }
+  async listJobs(): Promise<CourseGenerationJob[]> {
+    return apiRequest<CourseGenerationJob[]>('/rag/generate/jobs');
+  },
+
+  async getConfiguration(): Promise<RAGConfiguration> {
+    return apiRequest<RAGConfiguration>('/rag/configuration');
+  },
+
+  async updateConfiguration(
+    config: Partial<RAGConfiguration>
+  ): Promise<RAGConfiguration> {
+    return apiRequest<RAGConfiguration>('/rag/configuration', {
+      method: 'PUT',
+      body: JSON.stringify(config),
+    });
+  },
 };
 
 export { ApiError };
