@@ -81,7 +81,7 @@ const LessonForm: React.FC = () => {
         lesson_type: lesson.lesson_type,
         description: lesson.description || '',
         content: lesson.content || '',
-        video_url: '',
+        video_url: lesson.video?.url || '',
         duration: lesson.duration || '',
         order_index: lesson.order_index,
       });
@@ -100,7 +100,10 @@ const LessonForm: React.FC = () => {
       // Parse duration to seconds for backend
       const durationInSeconds = formData.duration ? parseInt(formData.duration) * 60 : undefined;
       
+      let savedLessonId: number;
+      
       if (isEditing) {
+        savedLessonId = parseInt(lessonId!);
         const updateData: LessonUpdate = {
           title: formData.title,
           lesson_type: formData.lesson_type,
@@ -108,8 +111,7 @@ const LessonForm: React.FC = () => {
           content: formData.content || undefined,
           order_index: formData.order_index,
         };
-        await lessonsApi.update(parseInt(lessonId!), updateData);
-        toast.success('Lesson updated successfully');
+        await lessonsApi.update(savedLessonId, updateData);
       } else {
         const createData: LessonCreate = {
           course_id: parseInt(courseId!),
@@ -119,9 +121,16 @@ const LessonForm: React.FC = () => {
           content: formData.content || undefined,
           order_index: formData.order_index,
         };
-        await lessonsApi.create(createData);
-        toast.success('Lesson created successfully');
+        const createdLesson = await lessonsApi.create(createData);
+        savedLessonId = createdLesson.id;
       }
+
+      // Save video URL if present
+      if (formData.lesson_type === 'VIDEO' && formData.video_url) {
+        await lessonsApi.setVideo(savedLessonId, formData.video_url);
+      }
+
+      toast.success(isEditing ? 'Lesson updated successfully' : 'Lesson created successfully');
       navigate(`/admin/courses/${courseId}/lessons`);
     } catch (error: any) {
       toast.error(error.message || 'Failed to save lesson');

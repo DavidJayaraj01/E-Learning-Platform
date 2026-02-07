@@ -1,10 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Users,
     Hourglass,
     MoreHorizontal,
     CheckCircle,
-    Moon,
     ChevronLeft,
     ChevronRight,
     Search,
@@ -12,48 +11,116 @@ import {
     Info,
     Settings2,
     CheckCircle2,
-    X as CloseIcon
+    X as CloseIcon,
+    Loader2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { coursesApi } from '../../services/api';
+import type { Course, CourseEnrollment } from '../../types/api';
+
+interface EnrollmentWithCourse extends CourseEnrollment {
+    courseName: string;
+}
 
 const CourseReportingDashboard: React.FC = () => {
     const navigate = useNavigate();
-    const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
-    const [visibleColumns, setVisibleColumns] = React.useState<string[]>([
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [visibleColumns, setVisibleColumns] = useState<string[]>([
         'S.No.', 'Course Name', 'Participant name', 'Enrolled Date', 'Start date', 'Time spent', 'Completion %', 'Completed date', 'Status'
     ]);
+    const [allEnrollments, setAllEnrollments] = useState<EnrollmentWithCourse[]>([]);
+    const [isLoadingEnrollments, setIsLoadingEnrollments] = useState(false);
 
+    // Fetch courses from API
+    const { data: courses = [], isLoading: isLoadingCourses } = useQuery({
+        queryKey: ['admin-courses-reporting'],
+        queryFn: () => coursesApi.list({ published_only: false }),
+    });
+
+    // Fetch enrollments for all courses
+    useEffect(() => {
+        const fetchAllEnrollments = async () => {
+            if (courses.length === 0) return;
+            
+            setIsLoadingEnrollments(true);
+            try {
+                const enrollmentPromises = courses.map(async (course) => {
+                    try {
+                        const enrollments = await coursesApi.getEnrollments(course.id);
+                        return enrollments.map(e => ({
+                            ...e,
+                            courseName: course.title
+                        }));
+                    } catch (error) {
+                        console.error(`Failed to fetch enrollments for course ${course.id}:`, error);
+                        return [];
+                    }
+                });
+                
+                const results = await Promise.all(enrollmentPromises);
+                const flatEnrollments = results.flat();
+                setAllEnrollments(flatEnrollments);
+            } catch (error) {
+                console.error('Failed to fetch enrollments:', error);
+            } finally {
+                setIsLoadingEnrollments(false);
+            }
+        };
+
+        fetchAllEnrollments();
+    }, [courses]);
+
+    // Calculate stats from real data
     const stats = [
-        { label: 'Total Participants', value: '8', icon: Users, color: 'text-slate-500' },
-        { label: 'Yet to Start', value: '5', icon: Hourglass, color: 'text-[#7E2259]' },
-        { label: 'In Progress', value: '2', icon: MoreHorizontal, color: 'text-[#7E2259]' },
-        { label: 'Completed', value: '1', icon: CheckCircle, color: 'text-[#7E2259]' },
+        { 
+            label: 'Total Participants', 
+            value: allEnrollments.length.toString(), 
+            icon: Users, 
+            color: 'text-slate-500' 
+        },
+        { 
+            label: 'Yet to Start', 
+            value: allEnrollments.filter(e => e.status === 'YET_TO_START').length.toString(), 
+            icon: Hourglass, 
+            color: 'text-[#7E2259]' 
+        },
+        { 
+            label: 'In Progress', 
+            value: allEnrollments.filter(e => e.status === 'IN_PROGRESS').length.toString(), 
+            icon: MoreHorizontal, 
+            color: 'text-[#7E2259]' 
+        },
+        { 
+            label: 'Completed', 
+            value: allEnrollments.filter(e => e.status === 'COMPLETED').length.toString(), 
+            icon: CheckCircle, 
+            color: 'text-[#7E2259]' 
+        },
     ];
 
-    const usersData = [
-        {
-            sno: 1,
-            courseName: 'Basics of CRM',
-            participantName: 'Salman Khan',
-            enrolledDate: 'Feb 14',
-            startDate: 'Feb 16',
-            timeSpent: '2:20',
-            completion: '30%',
-            completedDate: 'Feb 21',
-            status: 'In Progress'
-        },
-        {
-            sno: 2,
-            courseName: 'Advanced Sales',
-            participantName: 'Rahul Sharma',
-            enrolledDate: 'Jan 10',
-            startDate: 'Jan 12',
-            timeSpent: '8:45',
-            completion: '100%',
-            completedDate: 'Jan 15',
-            status: 'Completed'
+    // Format date
+    const formatDate = (dateString?: string) => {
+        if (!dateString) return '-';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
+
+    // Get status display
+    const getStatusDisplay = (status: string) => {
+        switch (status) {
+            case 'YET_TO_START':
+                return { label: 'Yet to Start', bgClass: 'bg-slate-100', textClass: 'text-slate-600' };
+            case 'IN_PROGRESS':
+                return { label: 'In Progress', bgClass: 'bg-[#FFF8F0]', textClass: 'text-[#FF8A00]' };
+            case 'COMPLETED':
+                return { label: 'Completed', bgClass: 'bg-[#E7F7EF]', textClass: 'text-[#22C55E]' };
+            default:
+                return { label: status, bgClass: 'bg-slate-100', textClass: 'text-slate-600' };
         }
-    ];
+    };
+
+    const isLoading = isLoadingCourses || isLoadingEnrollments;
 
     return (
         <div className="min-h-screen bg-[#FDFDFF] font-sans">
@@ -72,9 +139,6 @@ const CourseReportingDashboard: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-8">
-                    <button className="text-slate-400 hover:text-slate-600 transition-colors">
-                        <Moon size={22} />
-                    </button>
                     <div className="w-10 h-10 rounded-full bg-[#7E2259] flex items-center justify-center font-black text-white text-xs shadow-md cursor-pointer">
                         JD
                     </div>
@@ -141,26 +205,32 @@ const CourseReportingDashboard: React.FC = () => {
                             Overview
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                            {stats.map((stat, i) => (
-                                <div key={i} className="bg-white rounded-[2.5rem] p-10 border border-slate-50 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.03)] flex flex-col items-center justify-center text-center space-y-6 hover:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] transition-all group">
-                                    <div className={`w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                                        <stat.icon size={28} className={stat.color} />
+                        {isLoading ? (
+                            <div className="flex items-center justify-center py-20">
+                                <Loader2 className="w-8 h-8 text-[#7E2259] animate-spin" />
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                                {stats.map((stat, i) => (
+                                    <div key={i} className="bg-white rounded-[2.5rem] p-10 border border-slate-50 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.03)] flex flex-col items-center justify-center text-center space-y-6 hover:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] transition-all group">
+                                        <div className={`w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                                            <stat.icon size={28} className={stat.color} />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="text-5xl font-black text-slate-800">{stat.value}</div>
+                                            <div className="text-xs font-black text-slate-400 uppercase tracking-widest">{stat.label}</div>
+                                        </div>
                                     </div>
-                                    <div className="space-y-1">
-                                        <div className="text-5xl font-black text-slate-800">{stat.value}</div>
-                                        <div className="text-xs font-black text-slate-400 uppercase tracking-widest">{stat.label}</div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     {/* Users Section */}
                     <div className="space-y-8">
                         <div className="flex items-center justify-between">
                             <div className="inline-flex items-center px-4 py-1.5 bg-[#FFF8F0] text-[#FF8A00] rounded-lg text-[10px] font-black uppercase tracking-widest border border-[#FF8A00]/10">
-                                Users
+                                Users ({allEnrollments.length})
                             </div>
                             <button
                                 onClick={() => setIsSidebarOpen(true)}
@@ -194,31 +264,42 @@ const CourseReportingDashboard: React.FC = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-50">
-                                        {usersData.map((row, i) => (
-                                            <tr key={i} className="group hover:bg-slate-50/30 transition-all cursor-pointer">
-                                                {visibleColumns.includes('S.No.') && <td className="px-8 py-6 text-sm font-black text-slate-600 italic">{row.sno}</td>}
-                                                {visibleColumns.includes('Course Name') && <td className="px-8 py-6 text-sm font-black text-[#7E2259] font-serif italic uppercase tracking-tight">{row.courseName}</td>}
-                                                {visibleColumns.includes('Participant name') && <td className="px-8 py-6 text-sm font-black text-[#0066FF]">{row.participantName}</td>}
-                                                {visibleColumns.includes('Enrolled Date') && <td className="px-8 py-6 text-sm font-black text-slate-400">{row.enrolledDate}</td>}
-                                                {visibleColumns.includes('Start date') && <td className="px-8 py-6 text-sm font-black text-slate-400">{row.startDate}</td>}
-                                                {visibleColumns.includes('Time spent') && <td className="px-8 py-6 text-sm font-black text-[#FF3B30]">{row.timeSpent}</td>}
-                                                {visibleColumns.includes('Completion %') && <td className="px-8 py-6 text-sm font-black text-[#0066FF] font-black">{row.completion}</td>}
-                                                {visibleColumns.includes('Completed date') && <td className="px-8 py-6 text-sm font-black text-slate-400">{row.completedDate}</td>}
-                                                {visibleColumns.includes('Status') && (
-                                                    <td className="px-8 py-6">
-                                                        {row.status === 'In Progress' ? (
-                                                            <span className="bg-[#FFF8F0] text-[#FF8A00] px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
-                                                                In Progress
-                                                            </span>
-                                                        ) : (
-                                                            <span className="bg-[#E7F7EF] text-[#22C55E] px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
-                                                                Completed
-                                                            </span>
-                                                        )}
-                                                    </td>
-                                                )}
+                                        {isLoading ? (
+                                            <tr>
+                                                <td colSpan={9} className="px-8 py-16 text-center">
+                                                    <Loader2 className="w-6 h-6 text-[#7E2259] animate-spin mx-auto" />
+                                                </td>
                                             </tr>
-                                        ))}
+                                        ) : allEnrollments.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={9} className="px-8 py-16 text-center text-slate-400">
+                                                    No enrollments found
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            allEnrollments.map((enrollment, i) => {
+                                                const statusDisplay = getStatusDisplay(enrollment.status);
+                                                return (
+                                                    <tr key={enrollment.id} className="group hover:bg-slate-50/30 transition-all cursor-pointer">
+                                                        {visibleColumns.includes('S.No.') && <td className="px-8 py-6 text-sm font-black text-slate-600 italic">{i + 1}</td>}
+                                                        {visibleColumns.includes('Course Name') && <td className="px-8 py-6 text-sm font-black text-[#7E2259] font-serif italic uppercase tracking-tight">{enrollment.courseName}</td>}
+                                                        {visibleColumns.includes('Participant name') && <td className="px-8 py-6 text-sm font-black text-[#0066FF]">{enrollment.user_name || `User #${enrollment.user_id}`}</td>}
+                                                        {visibleColumns.includes('Enrolled Date') && <td className="px-8 py-6 text-sm font-black text-slate-400">{formatDate(enrollment.enrolled_at)}</td>}
+                                                        {visibleColumns.includes('Start date') && <td className="px-8 py-6 text-sm font-black text-slate-400">{formatDate(enrollment.started_at)}</td>}
+                                                        {visibleColumns.includes('Time spent') && <td className="px-8 py-6 text-sm font-black text-[#FF3B30]">{enrollment.time_spent || '-'}</td>}
+                                                        {visibleColumns.includes('Completion %') && <td className="px-8 py-6 text-sm font-black text-[#0066FF]">{enrollment.completion_percentage}%</td>}
+                                                        {visibleColumns.includes('Completed date') && <td className="px-8 py-6 text-sm font-black text-slate-400">{formatDate(enrollment.completed_at)}</td>}
+                                                        {visibleColumns.includes('Status') && (
+                                                            <td className="px-8 py-6">
+                                                                <span className={`${statusDisplay.bgClass} ${statusDisplay.textClass} px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap`}>
+                                                                    {statusDisplay.label}
+                                                                </span>
+                                                            </td>
+                                                        )}
+                                                    </tr>
+                                                );
+                                            })
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -226,7 +307,7 @@ const CourseReportingDashboard: React.FC = () => {
                             {/* Pagination */}
                             <div className="px-10 py-8 flex items-center justify-between border-t border-slate-50">
                                 <div className="text-sm font-bold text-slate-400 italic">
-                                    Showing 1 to 2 of 8 entries
+                                    Showing {allEnrollments.length} of {allEnrollments.length} entries
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <button className="p-2 text-slate-300 hover:text-slate-800 transition-colors bg-white border border-slate-100 rounded-lg">

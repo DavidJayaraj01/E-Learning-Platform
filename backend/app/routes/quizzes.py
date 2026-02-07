@@ -221,6 +221,39 @@ async def submit_answer(
         )
 
 
+@router.post("/attempts/{attempt_id}/tab-switch")
+async def report_tab_switch(
+    attempt_id: int,
+    db: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Report a tab switch violation during quiz attempt.
+    This increments the tab_switches counter for the attempt.
+    """
+    # Verify attempt belongs to current user
+    attempt_result = await db.execute(select(QuizAttempt).where(QuizAttempt.id == attempt_id))
+    attempt = attempt_result.scalars().first()
+    
+    if not attempt:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Quiz attempt not found"
+        )
+    
+    if attempt.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This attempt doesn't belong to you"
+        )
+    
+    # Increment tab switches count
+    attempt.tab_switches = (attempt.tab_switches or 0) + 1
+    await db.commit()
+    
+    return {"message": "Tab switch recorded", "total_tab_switches": attempt.tab_switches}
+
+
 @router.post("/attempts/{attempt_id}/complete", response_model=AttemptResultResponse)
 async def complete_attempt(
     attempt_id: int,

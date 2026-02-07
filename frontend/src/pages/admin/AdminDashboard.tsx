@@ -5,7 +5,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { coursesApi } from '../../services/api';
 import {
     Search,
-    Moon,
     LayoutGrid,
     Plus,
     X,
@@ -23,6 +22,7 @@ const AdminDashboard: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [newCourseName, setNewCourseName] = useState('');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
     // Fetch courses from API
     const { data: courses = [], isLoading } = useQuery({
@@ -40,7 +40,6 @@ const AdminDashboard: React.FC = () => {
 
     const handleCreateCourse = (e: React.FormEvent) => {
         e.preventDefault();
-        // Handle course creation logic here
         console.log('Creating course:', newCourseName);
         setIsCreateModalOpen(false);
         setNewCourseName('');
@@ -50,7 +49,6 @@ const AdminDashboard: React.FC = () => {
     return (
         <div className="min-h-screen bg-[#FDFDFF] font-sans">
             {/* Header */}
-            {/* ... same as before ... */}
             <header className="bg-white px-8 py-3 flex items-center justify-between border-b border-gray-100 sticky top-0 z-50">
                 <div className="flex items-center gap-10">
                     <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/admin/dashboard')}>
@@ -85,9 +83,6 @@ const AdminDashboard: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-6">
-                    <button className="text-gray-400 hover:text-[#7E2259] transition-colors">
-                        <Moon size={22} />
-                    </button>
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-3">
                             <div className="text-right hidden sm:block">
@@ -126,10 +121,16 @@ const AdminDashboard: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-0 bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
-                        <button className="p-3 text-gray-400 hover:text-[#7E2259] hover:bg-gray-50">
+                        <button 
+                            onClick={() => setViewMode('grid')}
+                            className={`p-3 transition-colors ${viewMode === 'grid' ? 'bg-[#7E2259] text-white' : 'text-gray-400 hover:text-[#7E2259] hover:bg-gray-50'}`}
+                        >
                             <LayoutGrid size={22} />
                         </button>
-                        <button className="p-3 bg-[#7E2259] text-white">
+                        <button 
+                            onClick={() => setViewMode('list')}
+                            className={`p-3 transition-colors ${viewMode === 'list' ? 'bg-[#7E2259] text-white' : 'text-gray-400 hover:text-[#7E2259] hover:bg-gray-50'}`}
+                        >
                             <List size={22} />
                         </button>
                     </div>
@@ -143,6 +144,32 @@ const AdminDashboard: React.FC = () => {
                 ) : courses.length === 0 ? (
                     <div className="bg-white rounded-[2.5rem] p-20 text-center shadow-sm border border-gray-100">
                         <p className="text-gray-400 text-lg">No courses found. Create your first course to get started!</p>
+                    </div>
+                ) : viewMode === 'grid' ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {courses.filter(c => c.title.toLowerCase().includes(searchQuery.toLowerCase())).map((course) => (
+                            <div key={course.id} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all group cursor-pointer" onClick={() => navigate(`/admin/courses/${course.id}/edit`)}>
+                                <div className="aspect-video bg-gradient-to-br from-[#7E2259]/10 to-[#7E2259]/5 rounded-xl mb-4 flex items-center justify-center">
+                                    {course.image_url ? (
+                                        <img src={course.image_url} alt={course.title} className="w-full h-full object-cover rounded-xl" />
+                                    ) : (
+                                        <LayoutDashboard className="w-12 h-12 text-[#7E2259]/30" />
+                                    )}
+                                </div>
+                                <h3 className="font-bold text-lg text-gray-900 mb-2 group-hover:text-[#7E2259] transition-colors line-clamp-2">{course.title}</h3>
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                    {course.published ? (
+                                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">Published</span>
+                                    ) : (
+                                        <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold">Draft</span>
+                                    )}
+                                </div>
+                                <div className="flex items-center justify-between text-sm text-gray-500">
+                                    <span>{(course as any).enrolled_count || (course as any).enrollments_count || 0} enrolled</span>
+                                    <span>{(course as any).lessons_count || course.total_lessons || 0} lessons</span>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 ) : (
                     <div className="space-y-6">

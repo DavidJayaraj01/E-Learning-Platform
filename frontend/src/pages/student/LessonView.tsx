@@ -17,10 +17,15 @@ import {
     Timer,
     RotateCcw,
     PartyPopper,
-    X
+    X,
+    Loader2,
+    AlertTriangle,
+    Minimize
 } from 'lucide-react';
 import { lessonsApi, quizzesApi } from '../../services/api';
 import type { Lesson, Quiz } from '../../types/api';
+import { toast } from 'sonner';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Content item interface for unified display
 interface ContentItem {
@@ -37,6 +42,7 @@ interface ContentItem {
 const LessonView: React.FC = () => {
     const navigate = useNavigate();
     const { courseId, lessonId, quizId } = useParams();
+    const { user } = useAuth();
     
     // Determine content type and ID based on URL
     const activeContentId = lessonId ? parseInt(lessonId) : (quizId ? parseInt(quizId) : 0);
@@ -48,6 +54,85 @@ const LessonView: React.FC = () => {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedAnswers, setSelectedAnswers] = useState<{[key: number]: number}>({});
     const [showCompletionModal, setShowCompletionModal] = useState(false);
+    
+    // Quiz attempt state
+    const [attemptId, setAttemptId] = useState<number | null>(null);
+    const [isStartingQuiz, setIsStartingQuiz] = useState(false);
+    const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
+    const [isCompletingQuiz, setIsCompletingQuiz] = useState(false);
+    const [quizResult, setQuizResult] = useState<{earned_points: number; correct_count: number; total_questions: number} | null>(null);
+    
+    // Lesson completion state
+    const [isCompletingLesson, setIsCompletingLesson] = useState(false);
+
+    // Fullscreen and tab switch detection state
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [tabSwitchCount, setTabSwitchCount] = useState(0);
+
+    // Fullscreen and tab switch detection effect
+    useEffect(() => {
+        if (!quizStarted || !attemptId) return;
+
+        // Handle visibility change (tab switch detection)
+        const handleVisibilityChange = async () => {
+            if (document.hidden && quizStarted && attemptId) {
+                // User switched tabs or minimized window
+                setTabSwitchCount(prev => prev + 1);
+                toast.warning('Tab switch detected! This has been recorded.', {
+                    duration: 3000,
+                });
+                try {
+                    await quizzesApi.reportTabSwitch(attemptId);
+                } catch (error) {
+                    console.error('Failed to report tab switch:', error);
+                }
+            }
+        };
+
+        // Handle fullscreen change
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+            if (!document.fullscreenElement && quizStarted) {
+                // User exited fullscreen during quiz
+                toast.warning('Please stay in fullscreen mode during the quiz!', {
+                    duration: 3000,
+                });
+                // Re-enter fullscreen
+                enterFullscreen();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+        };
+    }, [quizStarted, attemptId]);
+
+    // Enter fullscreen mode
+    const enterFullscreen = async () => {
+        try {
+            await document.documentElement.requestFullscreen();
+            setIsFullscreen(true);
+        } catch (error) {
+            console.error('Failed to enter fullscreen:', error);
+            toast.error('Unable to enter fullscreen mode');
+        }
+    };
+
+    // Exit fullscreen mode
+    const exitFullscreen = async () => {
+        try {
+            if (document.fullscreenElement) {
+                await document.exitFullscreen();
+            }
+            setIsFullscreen(false);
+        } catch (error) {
+            console.error('Failed to exit fullscreen:', error);
+        }
+    };
 
     // Fetch lessons for the course
     const { data: lessons = [] } = useQuery({
@@ -109,6 +194,114 @@ const LessonView: React.FC = () => {
         }
     }, [contentItems, currentActiveContentId]);
 
+    // Handle starting a quiz attempt
+    const handleStartQuiz = async () => {
+        if (!activeQuiz || isStartingQuiz) return;
+        
+        // Request fullscreen FIRST (must be in user gesture context)
+        try {
+            await document.documentElement.requestFullscreen();
+            setIsFullscreen(true);
+        } catch (error) {
+            console.error('Failed to enter fullscreen:', error);
+            // Continue anyway, just show warning
+            toast.warning('Fullscreen mode not available. Tab switches will still be monitored.');
+        }
+        
+        setIsStartingQuiz(true);
+        try {
+            const attempt = await quizzesApi.startAttempt(currentActiveContentId);
+            setAttemptId(attempt.id);
+            setQuizStarted(true);
+            setTabSwitchCount(0);
+            toast.success('Quiz started!');
+        } catch (error: any) {
+            console.error('Failed to start quiz:', error);
+            toast.error(error.message || 'Failed to start quiz');
+            // Exit fullscreen if quiz failed to start
+            if (document.fullscreenElement) {
+                await document.exitFullscreen();
+                setIsFullscreen(false);
+            }
+        } finally {
+            setIsStartingQuiz(false);
+        }
+    };
+
+    // Handle submitting an answer
+    const handleSubmitAnswer = async (questionIndex: number, optionIndex: number) => {
+        if (!attemptId || !activeQuiz) return;
+        
+        const question = (activeQuiz as any)?.questions?.[questionIndex];
+        const option = question?.options?.[optionIndex];
+        
+        if (!question || !option) return;
+        
+        try {
+            setIsSubmittingAnswer(true);
+            await quizzesApi.submitAnswer(attemptId, question.id, option.id);
+            setSelectedAnswers(prev => ({...prev, [questionIndex]: optionIndex}));
+        } catch (error: any) {
+            console.error('Failed to submit answer:', error);
+            toast.error(error.message || 'Failed to submit answer');
+        } finally {
+            setIsSubmittingAnswer(false);
+        }
+    };
+
+    // Handle completing a quiz attempt
+    const handleCompleteQuiz = async () => {
+        if (!attemptId || isCompletingQuiz) return;
+        
+        setIsCompletingQuiz(true);
+        try {
+            const result = await quizzesApi.completeAttempt(attemptId);
+            setQuizResult({
+                earned_points: result.earned_points || 0,
+                correct_count: result.correct_answers || 0,
+                total_questions: result.total_questions || (activeQuiz as any)?.questions?.length || 0
+            });
+            // Exit fullscreen mode
+            await exitFullscreen();
+            setShowCompletionModal(true);
+            toast.success('Quiz completed!');
+        } catch (error: any) {
+            console.error('Failed to complete quiz:', error);
+            toast.error(error.message || 'Failed to complete quiz');
+        } finally {
+            setIsCompletingQuiz(false);
+        }
+    };
+
+    // Reset quiz state when switching content
+    const resetQuizState = () => {
+        setQuizStarted(false);
+        setCurrentQuestionIndex(0);
+        setSelectedAnswers({});
+        setAttemptId(null);
+        setQuizResult(null);
+        setTabSwitchCount(0);
+        // Exit fullscreen if active
+        exitFullscreen();
+    };
+
+    // Handle completing a lesson
+    const handleCompleteLesson = async () => {
+        if (!user?.id || !currentActiveContentId || isCompletingLesson) return;
+        
+        setIsCompletingLesson(true);
+        try {
+            await lessonsApi.complete(currentActiveContentId, user.id);
+            toast.success('Lesson completed!');
+            navigate(`/student/course/${courseId}`);
+        } catch (error: any) {
+            console.error('Failed to complete lesson:', error);
+            toast.error(error.message || 'Failed to mark lesson as complete');
+        } finally {
+            setIsCompletingLesson(false);
+        }
+    };
+
     const activeContentItem = contentItems.find(item => item.id === currentActiveContentId && item.type === currentActiveContentType);
     const activeData = currentActiveContentType === 'LESSON' ? activeLesson : activeQuiz;
 
@@ -151,9 +344,7 @@ const LessonView: React.FC = () => {
                                 onClick={() => {
                                     setCurrentActiveContentId(item.id);
                                     setCurrentActiveContentType(item.type);
-                                    setQuizStarted(false);
-                                    setCurrentQuestionIndex(0);
-                                    setSelectedAnswers({});
+                                    resetQuizState();
                                     // Update URL
                                     if (item.type === 'LESSON') {
                                         navigate(`/student/course/${courseId}/lesson/${item.id}`, { replace: true });
@@ -255,24 +446,49 @@ const LessonView: React.FC = () => {
                                                 {activeQuiz?.time_limit ? `${activeQuiz.time_limit} minutes` : 'No Time Limit'}
                                             </span>
                                         </div>
+                                        <div className="flex items-center gap-3 text-sm text-amber-600 bg-amber-50 p-3 rounded-lg -mx-2">
+                                            <Maximize size={18} />
+                                            <span className="font-semibold">Fullscreen mode enabled - Tab switches will be recorded</span>
+                                        </div>
                                     </div>
 
                                     <button
-                                        onClick={() => setQuizStarted(true)}
-                                        className="w-full bg-[#7E2259] text-white py-4 rounded-xl font-bold hover:bg-[#601a44] transition-all shadow-lg shadow-[#7E2259]/20"
-                                        disabled={!(activeQuiz as any)?.questions?.length}
+                                        onClick={handleStartQuiz}
+                                        className="w-full bg-[#7E2259] text-white py-4 rounded-xl font-bold hover:bg-[#601a44] transition-all shadow-lg shadow-[#7E2259]/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                                        disabled={!(activeQuiz as any)?.questions?.length || isStartingQuiz}
                                     >
-                                        {(activeQuiz as any)?.questions?.length ? 'Start Quiz' : 'Loading...'}
+                                        {isStartingQuiz ? (
+                                            <>
+                                                <Loader2 size={20} className="animate-spin" />
+                                                Starting...
+                                            </>
+                                        ) : (
+                                            (activeQuiz as any)?.questions?.length ? 'Start Quiz' : 'Loading...'
+                                        )}
                                     </button>
                                 </div>
                             ) : (
                                 /* Question View */
                                 <div className="max-w-3xl mx-auto w-full animate-fade-in">
+                                    {/* Tab switch warning */}
+                                    {tabSwitchCount > 0 && (
+                                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-red-700">
+                                            <AlertTriangle size={18} />
+                                            <span className="text-sm font-medium">
+                                                Warning: {tabSwitchCount} tab switch{tabSwitchCount > 1 ? 'es' : ''} detected. This has been recorded.
+                                            </span>
+                                        </div>
+                                    )}
                                     <div className="flex items-center justify-between mb-8">
                                         <div className="flex flex-col gap-1">
                                             <span className="text-sm font-medium text-slate-500">
                                                 Question {currentQuestionIndex + 1} of {(activeQuiz as any)?.questions?.length}
                                             </span>
+                                            {isFullscreen && (
+                                                <span className="text-xs text-green-600 font-medium flex items-center gap-1">
+                                                    <Maximize size={12} /> Fullscreen Mode
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="flex gap-1">
                                             {/* Not using the steps progress bar from previous design to match new screenshot cleaner look, or simplifying it */}
@@ -295,8 +511,8 @@ const LessonView: React.FC = () => {
                                                     selectedAnswers[currentQuestionIndex] === index
                                                         ? 'border-[#7E2259] bg-[#7E2259]/5'
                                                         : 'border-slate-50 bg-slate-50 hover:bg-slate-100 hover:border-slate-200'
-                                                }`}
-                                                onClick={() => setSelectedAnswers(prev => ({...prev, [currentQuestionIndex]: index}))}
+                                                } ${isSubmittingAnswer ? 'opacity-50 pointer-events-none' : ''}`}
+                                                onClick={() => handleSubmitAnswer(currentQuestionIndex, index)}
                                             >
                                                 <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
                                                     selectedAnswers[currentQuestionIndex] === index
@@ -320,10 +536,18 @@ const LessonView: React.FC = () => {
                                     {(currentQuestionIndex === ((activeQuiz as any)?.questions?.length || 0) - 1) ? (
                                         <div className="flex justify-center pt-8">
                                             <button
-                                                onClick={() => setShowCompletionModal(true)}
-                                                className="bg-[#7E2259] text-white px-10 py-4 rounded-full font-bold hover:bg-[#601a44] transition-all shadow-lg shadow-[#7E2259]/20 text-base"
+                                                onClick={handleCompleteQuiz}
+                                                className="bg-[#7E2259] text-white px-10 py-4 rounded-full font-bold hover:bg-[#601a44] transition-all shadow-lg shadow-[#7E2259]/20 text-base flex items-center gap-2 disabled:opacity-50"
+                                                disabled={isCompletingQuiz}
                                             >
-                                                Complete Quiz
+                                                {isCompletingQuiz ? (
+                                                    <>
+                                                        <Loader2 size={20} className="animate-spin" />
+                                                        Completing...
+                                                    </>
+                                                ) : (
+                                                    'Complete Quiz'
+                                                )}
                                             </button>
                                         </div>
                                     ) : (
@@ -382,26 +606,56 @@ const LessonView: React.FC = () => {
                                 )}
                             </div>
 
-                            {/* Video or Document Content */}
-                            {activeLesson?.video_url && (
+                            {/* Video Content - YouTube Embed */}
+                            {activeLesson?.video?.url && (
                                 <div className="mb-8">
-                                    <div className="aspect-video bg-slate-100 rounded-xl flex items-center justify-center">
-                                        <div className="text-center">
-                                            <PlayCircle size={48} className="mx-auto mb-2 text-slate-400" />
-                                            <p className="text-slate-500">Video content would be displayed here</p>
-                                            <p className="text-xs text-slate-400 mt-1">{activeLesson.video_url}</p>
-                                        </div>
+                                    <div className="aspect-video bg-slate-900 rounded-xl overflow-hidden shadow-lg">
+                                        {(() => {
+                                            const url = activeLesson.video.url;
+                                            // Extract YouTube video ID from various URL formats
+                                            let videoId = '';
+                                            if (url.includes('youtube.com/watch?v=')) {
+                                                videoId = url.split('v=')[1]?.split('&')[0] || '';
+                                            } else if (url.includes('youtu.be/')) {
+                                                videoId = url.split('youtu.be/')[1]?.split('?')[0] || '';
+                                            } else if (url.includes('youtube.com/embed/')) {
+                                                videoId = url.split('embed/')[1]?.split('?')[0] || '';
+                                            }
+                                            
+                                            if (videoId) {
+                                                return (
+                                                    <iframe
+                                                        className="w-full h-full"
+                                                        src={`https://www.youtube.com/embed/${videoId}`}
+                                                        title="Video content"
+                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                        allowFullScreen
+                                                    />
+                                                );
+                                            }
+                                            
+                                            // Fallback for non-YouTube videos
+                                            return (
+                                                <video 
+                                                    className="w-full h-full" 
+                                                    controls
+                                                    src={url}
+                                                >
+                                                    Your browser does not support the video tag.
+                                                </video>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                             )}
 
-                            {activeLesson?.document_url && (
+                            {activeLesson?.document?.file_url && (
                                 <div className="mb-8 p-4 bg-slate-50 rounded-xl">
                                     <div className="flex items-center gap-3 text-slate-600">
                                         <FileText size={20} />
                                         <div>
                                             <p className="font-medium">Document Attached</p>
-                                            <p className="text-xs text-slate-500">{activeLesson.document_url}</p>
+                                            <p className="text-xs text-slate-500">{activeLesson.document.file_url}</p>
                                         </div>
                                         <button className="ml-auto p-2 hover:bg-slate-200 rounded-lg transition-colors">
                                             <Download size={16} />
@@ -424,10 +678,18 @@ const LessonView: React.FC = () => {
                                     ← Back to Course
                                 </button>
                                 <button
-                                    className="bg-[#7E2259] text-white px-6 py-3 rounded-xl font-bold hover:bg-[#601a44] transition-all shadow-lg shadow-[#7E2259]/20"
-                                    onClick={() => navigate(`/student/course/${courseId}`)}
+                                    className="bg-[#7E2259] text-white px-6 py-3 rounded-xl font-bold hover:bg-[#601a44] transition-all shadow-lg shadow-[#7E2259]/20 flex items-center gap-2 disabled:opacity-50"
+                                    onClick={handleCompleteLesson}
+                                    disabled={isCompletingLesson}
                                 >
-                                    Complete Lesson
+                                    {isCompletingLesson ? (
+                                        <>
+                                            <Loader2 size={18} className="animate-spin" />
+                                            Completing...
+                                        </>
+                                    ) : (
+                                        'Complete Lesson'
+                                    )}
                                 </button>
                             </div>
                         </div>
@@ -451,7 +713,10 @@ const LessonView: React.FC = () => {
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
                         <div className="bg-white rounded-3xl p-8 max-w-md w-full relative transform transition-all scale-100 shadow-2xl text-center">
                             <button
-                                onClick={() => setShowCompletionModal(false)}
+                                onClick={() => {
+                                    setShowCompletionModal(false);
+                                    resetQuizState();
+                                }}
                                 className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors"
                             >
                                 <X size={20} />
@@ -461,24 +726,36 @@ const LessonView: React.FC = () => {
                                 <PartyPopper size={40} className="text-[#16A34A]" />
                             </div>
 
-                            <h2 className="text-3xl font-bold text-[#16A34A] mb-2">Bingo!</h2>
-                            <p className="text-slate-600 font-bold text-lg mb-8">You have earned!</p>
+                            <h2 className="text-3xl font-bold text-[#16A34A] mb-2">
+                                {quizResult && quizResult.correct_count === quizResult.total_questions ? 'Perfect!' : 'Well Done!'}
+                            </h2>
+                            <p className="text-slate-600 font-bold text-lg mb-4">
+                                {quizResult ? `${quizResult.correct_count}/${quizResult.total_questions} Correct` : 'Quiz Completed!'}
+                            </p>
 
                             <div className="inline-block bg-[#DCFCE7] text-[#16A34A] px-6 py-2 rounded-full font-bold shadow-sm mb-8">
-                                20 points
+                                +{quizResult?.earned_points || 0} points
                             </div>
 
-                            {/* Progress Bar in Modal */}
-                            <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 justify-between px-1">
-                                <span>5 Points</span>
-                                <span>100 Points</span>
-                            </div>
-                            <div className="w-full bg-slate-100 rounded-full h-3 mb-8 relative overflow-hidden">
-                                <div className="absolute top-0 left-0 h-full w-[20%] bg-[#10B981] rounded-full"></div>
-                            </div>
+                            {/* Score Progress Bar */}
+                            {quizResult && quizResult.total_questions > 0 && (
+                                <>
+                                    <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 justify-between px-1">
+                                        <span>0%</span>
+                                        <span>{Math.round((quizResult.correct_count / quizResult.total_questions) * 100)}% Score</span>
+                                        <span>100%</span>
+                                    </div>
+                                    <div className="w-full bg-slate-100 rounded-full h-3 mb-8 relative overflow-hidden">
+                                        <div 
+                                            className="absolute top-0 left-0 h-full bg-[#10B981] rounded-full transition-all"
+                                            style={{ width: `${(quizResult.correct_count / quizResult.total_questions) * 100}%` }}
+                                        ></div>
+                                    </div>
+                                </>
+                            )}
 
                             <p className="text-slate-500 text-sm mb-8">
-                                Reach the next rank to gain more points.
+                                Great job! Your progress has been saved.
                             </p>
 
                             <button

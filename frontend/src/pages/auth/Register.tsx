@@ -42,7 +42,7 @@ const Register: React.FC = () => {
         role: role as 'admin' | 'learner' | 'instructor'
       });
 
-      if (role === 'admin') {
+      if (role === 'admin' || role === 'instructor') {
         navigate('/admin/dashboard');
       } else {
         navigate('/student/dashboard');

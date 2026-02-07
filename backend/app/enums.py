@@ -3,9 +3,9 @@ from enum import Enum
 
 class UserRole(str, Enum):
     """User role enumeration"""
-    ADMIN = "ADMIN"
-    INSTRUCTOR = "INSTRUCTOR"
-    LEARNER = "LEARNER"
+    ADMIN = "admin"
+    INSTRUCTOR = "instructor"
+    LEARNER = "learner"
 
 
 class LessonType(str, Enum):

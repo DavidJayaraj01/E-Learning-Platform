@@ -159,8 +159,48 @@ async def complete_quiz_attempt(
     if not attempt:
         raise ValueError("Quiz attempt not found")
     
+    # If already completed, return the existing result
     if attempt.status == QuizAttemptStatus.COMPLETED:
-        raise ValueError("Quiz attempt already completed")
+        # Get quiz and questions to return proper result
+        quiz_result = await db.execute(
+            select(Quiz).where(Quiz.id == attempt.quiz_id)
+        )
+        quiz = quiz_result.scalars().first()
+        
+        questions_result = await db.execute(
+            select(QuizQuestion).where(QuizQuestion.quiz_id == quiz.id)
+        )
+        questions = questions_result.scalars().all()
+        
+        # Get answers to count correct ones
+        answers_result = await db.execute(
+            select(QuizAttemptAnswer)
+            .where(QuizAttemptAnswer.attempt_id == attempt_id)
+        )
+        answers = answers_result.scalars().all()
+        correct_count = sum(1 for a in answers if a.is_correct)
+        
+        # Get user for total points
+        user_result = await db.execute(select(User).where(User.id == attempt.user_id))
+        user = user_result.scalars().first()
+        
+        total_possible = sum(q.points_first for q in questions)
+        percentage = (correct_count / len(questions) * 100) if questions else 0
+        
+        return {
+            "attempt_id": attempt.id,
+            "quiz_id": attempt.quiz_id,
+            "user_id": attempt.user_id,
+            "status": attempt.status,
+            "attempt_number": attempt.attempt_number,
+            "total_questions": len(questions),
+            "correct_answers": correct_count,
+            "earned_points": attempt.earned_points,
+            "total_possible_points": total_possible,
+            "percentage_score": round(percentage, 2),
+            "user_total_points": user.total_points if user else 0,
+            "completed_at": attempt.completed_at
+        }
     
     # Get all answers for this attempt
     answers_result = await db.execute(

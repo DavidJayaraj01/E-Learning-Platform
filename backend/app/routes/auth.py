@@ -28,7 +28,7 @@ class RegisterRequest(BaseModel):
     email: str
     password: str
     name: str
-    role: str = "LEARNER"
+    role: str = "learner"
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -94,7 +94,7 @@ async def register(
         email=user_data.email,
         password_hash=user_data.password,  # Hash this in production!
         name=user_data.name,
-        role=user_data.role.upper()  # Ensure uppercase for enum consistency
+        role=user_data.role.lower()  # Ensure lowercase for enum consistency
     )
     
     db.add(db_user)

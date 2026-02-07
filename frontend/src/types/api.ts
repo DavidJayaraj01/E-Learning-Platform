@@ -4,7 +4,7 @@ export interface User {
   email: string;
   full_name?: string;
   name?: string; // Legacy support
-  role: 'ADMIN' | 'INSTRUCTOR' | 'LEARNER';
+  role: 'admin' | 'instructor' | 'learner' | 'ADMIN' | 'INSTRUCTOR' | 'LEARNER';
   is_active: boolean;
   total_points?: number;
   enrolled_courses?: number;
@@ -16,13 +16,13 @@ export interface UserCreate {
   email: string;
   password: string;
   full_name?: string;
-  role?: 'ADMIN' | 'INSTRUCTOR' | 'LEARNER';
+  role?: 'admin' | 'instructor' | 'learner';
 }
 
 export interface UserUpdate {
   full_name?: string;
   password?: string;
-  role?: 'ADMIN' | 'INSTRUCTOR' | 'LEARNER';
+  role?: 'admin' | 'instructor' | 'learner';
   is_active?: boolean;
 }
 
@@ -195,11 +195,25 @@ export interface CourseEnrollment {
   id: number;
   course_id: number;
   user_id: number;
+  user_name?: string;
+  user_email?: string;
   enrolled_at: string;
   started_at?: string;
   completed_at?: string;
   status: 'YET_TO_START' | 'IN_PROGRESS' | 'COMPLETED';
-  time_spent: string;
+  time_spent?: string;
+  completion_percentage: number;
+}
+
+export interface CourseProgress {
+  course_id: number;
+  user_id: number;
+  total_lessons: number;
+  completed_lessons: number;
+  total_quizzes: number;
+  completed_quizzes: number;
+  total_items: number;
+  completed_items: number;
   completion_percentage: number;
 }
 
@@ -256,11 +270,12 @@ export interface CourseReview {
   rating: number;
   review_text?: string;
   created_at: string;
+  user_name?: string;
+  user_email?: string;
   user?: User;
 }
 
 export interface CourseReviewCreate {
-  course_id: number;
   rating: number;
   review_text?: string;
 }

@@ -12,6 +12,7 @@ import type {
   QuizQuestion,
   QuizAttempt,
   CourseEnrollment,
+  CourseProgress,
   UserLessonProgress,
   CourseReview,
   CourseReviewCreate,
@@ -266,6 +267,10 @@ export const coursesApi = {
       method: 'POST',
     });
   },
+
+  async getProgress(courseId: number): Promise<CourseProgress> {
+    return apiRequest<CourseProgress>(`/courses/${courseId}/progress`);
+  },
 };
 
 // Lessons API
@@ -309,6 +314,21 @@ export const lessonsApi = {
         method: 'POST',
       }
     );
+  },
+
+  async setVideo(lessonId: number, videoUrl: string): Promise<{message: string; url: string}> {
+    return apiRequest<{message: string; url: string}>(
+      `/lessons/${lessonId}/video?video_url=${encodeURIComponent(videoUrl)}`,
+      {
+        method: 'POST',
+      }
+    );
+  },
+
+  async deleteVideo(lessonId: number): Promise<void> {
+    return apiRequest<void>(`/lessons/${lessonId}/video`, {
+      method: 'DELETE',
+    });
   },
 };
 
@@ -390,6 +410,12 @@ export const quizzesApi = {
 
   async completeAttempt(attemptId: number): Promise<any> {
     return apiRequest<any>(`/quizzes/attempts/${attemptId}/complete`, {
+      method: 'POST',
+    });
+  },
+
+  async reportTabSwitch(attemptId: number): Promise<any> {
+    return apiRequest<any>(`/quizzes/attempts/${attemptId}/tab-switch`, {
       method: 'POST',
     });
   },

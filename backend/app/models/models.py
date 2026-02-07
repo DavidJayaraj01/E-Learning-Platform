@@ -269,6 +269,7 @@ class QuizAttempt(Base):
     started_at = Column(TIMESTAMP, server_default=func.current_timestamp())
     completed_at = Column(TIMESTAMP, nullable=True)
     earned_points = Column(Integer, default=0)
+    tab_switches = Column(Integer, default=0)  # Track tab switch violations
 
     # Relationships
     user = relationship("User", back_populates="quiz_attempts")
