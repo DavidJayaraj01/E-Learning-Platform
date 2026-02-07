@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 # Ollama configuration
 OLLAMA_URL = "http://localhost:11434/api/chat"
 # Common model names: gemma3:12b, gemma2:12b, gemma:12b, llama3:8b
-DEFAULT_MODEL = "gemma3:12b"  # Using Gemma 12B as specified
+DEFAULT_MODEL = "gemma3:4b"  # Using Gemma 4B as available
 
 
 # =============================================================================

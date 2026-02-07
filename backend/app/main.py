@@ -180,7 +180,15 @@ Upload any document (PDF, TXT, DOCX) and let AI create complete courses:
 # CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if settings.environment == "development" else [
+    allow_origins=[
+        "http://localhost:3000",  # React default
+        "http://localhost:5173",  # Vite default
+        "http://localhost:4000",  # Alternative frontend port
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:4000",
+        "*",  # Allow all origins in development
+    ] if settings.environment == "development" else [
         "https://yourdomain.com",
         "https://www.yourdomain.com",
     ],
@@ -189,6 +197,20 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["X-Total-Count", "X-Page", "X-Per-Page"],
 )
+
+# No-cache middleware to ensure fresh data
+@app.middleware("http")
+async def add_no_cache_headers(request: Request, call_next):
+    """Add no-cache headers to API responses to ensure fresh data"""
+    response = await call_next(request)
+    
+    # Add no-cache headers for API endpoints to ensure students see latest content
+    if request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    
+    return response
 
 
 # =============================================================================

@@ -5,7 +5,7 @@ from sqlalchemy import select
 from app.database.config import get_async_session
 from app.models.models import User
 from app.schemas.users import UserCreate, UserResponse
-from app.dependencies.auth import create_access_token
+from app.dependencies.auth import create_access_token, get_current_user
 from pydantic import BaseModel
 from datetime import timedelta
 
@@ -28,7 +28,7 @@ class RegisterRequest(BaseModel):
     email: str
     password: str
     name: str
-    role: str = "learner"
+    role: str = "LEARNER"
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -94,7 +94,7 @@ async def register(
         email=user_data.email,
         password_hash=user_data.password,  # Hash this in production!
         name=user_data.name,
-        role=user_data.role
+        role=user_data.role.upper()  # Ensure uppercase for enum consistency
     )
     
     db.add(db_user)
@@ -108,4 +108,19 @@ async def register(
         role=db_user.role,
         total_points=db_user.total_points,
         created_at=db_user.created_at
+    )
+
+
+@router.get("/profile", response_model=UserResponse)
+async def get_profile(
+    current_user: User = Depends(get_current_user)
+):
+    """Get current user profile"""
+    return UserResponse(
+        id=current_user.id,
+        email=current_user.email,
+        name=current_user.name,
+        role=current_user.role,
+        total_points=current_user.total_points,
+        created_at=current_user.created_at
     )

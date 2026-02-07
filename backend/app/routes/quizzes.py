@@ -44,7 +44,7 @@ async def get_course_quizzes(
     db: AsyncSession = Depends(get_async_session)
 ):
     """
-    Get all quizzes for a specific course.
+    Get all quizzes for a specific course, ordered by sequence.
     """
     # Verify course exists
     course_result = await db.execute(select(Course).where(Course.id == course_id))
@@ -58,7 +58,7 @@ async def get_course_quizzes(
         select(Quiz)
         .where(Quiz.course_id == course_id)
         .options(selectinload(Quiz.questions).selectinload(QuizQuestion.options))
-        .order_by(Quiz.order_index)
+        .order_by(Quiz.order_index.asc(), Quiz.id.asc())
     )
     quizzes = result.scalars().all()
     

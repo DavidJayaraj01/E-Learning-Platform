@@ -53,11 +53,11 @@ async def get_course_lessons(
     course_id: int,
     db: AsyncSession = Depends(get_async_session)
 ):
-    """Get all lessons for a course"""
+    """Get all lessons for a course, ordered by sequence"""
     result = await db.execute(
         select(Lesson)
         .where(Lesson.course_id == course_id)
-        .order_by(Lesson.order_index)
+        .order_by(Lesson.order_index.asc(), Lesson.created_at.asc())
     )
     lessons = result.scalars().all()
     
