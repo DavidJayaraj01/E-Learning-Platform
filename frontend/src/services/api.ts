@@ -1,66 +1,112 @@
-import { 
-  Course, CourseCreate, CourseFilters, CourseUpdate, 
-  Lesson, LessonCreate, LessonUpdate,
-  User, UserCreate, UserUpdate, UserFilters,
-  Quiz, QuizCreate, QuizQuestion,
-  CourseEnrollment, UserLessonProgress, QuizAttempt,
-  Badge, UserBadge, CourseReview, CourseReviewCreate,
-  LoginRequest, LoginResponse, RegisterRequest,
-  DashboardStats, AdminStats
+import type {
+  User,
+  LoginRequest, LoginResponse, RegisterRequest
 } from '../types/api';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// MOCK API IMPLEMENTATION
+// We use localStorage to simulate a persistent database for the frontend
+const DB_KEY = 'edu_platform_users_db';
+const SESSION_KEY = 'edu_platform_current_session';
 
 class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  status: number;
+
+  constructor(status: number, message: string) {
     super(message);
+    this.status = status;
     this.name = 'ApiError';
   }
 }
 
-const handleResponse = async <T>(response: Response): Promise<T> => {
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-    throw new ApiError(response.status, error.detail || 'Request failed');
-  }
-  return response.json();
+// Helper to get DB
+const getDb = (): User[] => {
+  const db = localStorage.getItem(DB_KEY);
+  return db ? JSON.parse(db) : [];
 };
 
-// Helper to get auth headers
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('access_token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
-  };
+// Helper to save DB
+const saveDb = (users: User[]) => {
+  localStorage.setItem(DB_KEY, JSON.stringify(users));
 };
 
-// Authentication API
+// Authentication API (Mocked)
 export const authApi = {
   async login(credentials: LoginRequest): Promise<LoginResponse> {
-    const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(credentials),
-    });
-    return handleResponse<LoginResponse>(response);
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 600));
+
+    const db = getDb();
+    let user = db.find(u => u.email.toLowerCase() === credentials.email.toLowerCase());
+
+    if (!user) {
+      // For demo purposes, if user doesn't exist, create one ad-hoc based on email pattern
+      // This allows direct login without registration for testing
+      const isAdmin = credentials.email.toLowerCase().includes('admin');
+
+      user = {
+        id: Math.floor(Math.random() * 10000),
+        email: credentials.email,
+        name: credentials.email.split('@')[0],
+        role: isAdmin ? 'admin' : 'learner',
+        total_points: isAdmin ? 9999 : 0,
+        created_at: new Date().toISOString()
+      };
+
+      // Save this ad-hoc user to DB so they persist
+      const newDb = [...db, user];
+      saveDb(newDb);
+    }
+
+    // Create session
+    localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+
+    return {
+      access_token: 'mock_jwt_' + Date.now(),
+      token_type: 'bearer',
+      user: user
+    };
   },
 
   async register(userData: RegisterRequest): Promise<User> {
-    const response = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(userData),
-    });
-    return handleResponse<User>(response);
+    await new Promise(resolve => setTimeout(resolve, 600));
+
+    const db = getDb();
+    if (db.find(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
+      throw new ApiError(400, 'User with this email already exists');
+    }
+
+    const newUser: User = {
+      id: Math.floor(Math.random() * 10000),
+      email: userData.email,
+      name: userData.name,
+      role: userData.role || 'learner', // Respect the selected role
+      total_points: 0,
+      created_at: new Date().toISOString()
+    };
+
+    // Save to DB
+    saveDb([...db, newUser]);
+
+    return newUser;
   },
 
   async getProfile(): Promise<User> {
-    const response = await fetch(`${API_BASE_URL}/api/v1/users/me`, {
-      headers: getAuthHeaders(),
-    });
-    return handleResponse<User>(response);
-  },
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    // Get from session
+    const sessionUser = localStorage.getItem(SESSION_KEY);
+    if (!sessionUser) {
+      throw new ApiError(401, 'Unauthorized');
+    }
+
+    // Refresh from DB to get latest state (points, etc)
+    const user = JSON.parse(sessionUser);
+    const db = getDb();
+    const freshUser = db.find(u => u.id === user.id) || user;
+
+    return freshUser;
+  }
 };
 
 export { ApiError };

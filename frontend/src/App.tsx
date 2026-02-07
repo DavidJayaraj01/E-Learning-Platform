@@ -2,11 +2,16 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Toaster } from 'sonner';
 
 // Import pages
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
-import Dashboard from './pages/Dashboard';
+import StudentDashboard from './pages/student/Dashboard';
+import CourseOverview from './pages/student/CourseOverview';
+import LessonView from './pages/student/LessonView';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import LandingPage from './pages/LandingPage';
 import LoadingSpinner from './components/common/LoadingSpinner';
 
 const queryClient = new QueryClient({
@@ -19,7 +24,7 @@ const queryClient = new QueryClient({
 });
 
 // Protected Route Component
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRole?: 'admin' | 'learner' }> = ({ children, allowedRole }) => {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -30,10 +35,22 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     return <Navigate to="/login" replace />;
   }
 
+  if (allowedRole && user.role !== allowedRole) {
+    // Redirect to correct dashboard if role doesn't match
+    if (user.role === 'admin') {
+      return <Navigate to="/admin/dashboard" replace />;
+    } else {
+      return <Navigate to="/student/dashboard" replace />;
+    }
+  }
+
   return <>{children}</>;
 };
 
 // Public Route Component (redirect to dashboard if authenticated)
+// Note: We might want to allow authenticated users to view Landing Page? 
+// If so, we should remove PublicRoute wrapper for LandingPage or modify PublicRoute.
+// But typically, if logged in, you go to dashboard.
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isLoading } = useAuth();
 
@@ -42,7 +59,11 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
 
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    if (user.role === 'admin') {
+      return <Navigate to="/admin/dashboard" replace />;
+    } else {
+      return <Navigate to="/student/dashboard" replace />;
+    }
   }
 
   return <>{children}</>;
@@ -51,11 +72,18 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <Toaster position="top-center" richColors />
       <AuthProvider>
         <Router>
           <div className="App">
             <Routes>
               {/* Public Routes */}
+              <Route path="/" element={
+                <PublicRoute>
+                  <LandingPage />
+                </PublicRoute>
+              } />
+
               <Route path="/login" element={
                 <PublicRoute>
                   <Login />
@@ -68,22 +96,47 @@ function App() {
               } />
 
               {/* Protected Routes */}
+              <Route path="/student/dashboard" element={
+                <ProtectedRoute>
+                  <StudentDashboard />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/student/course/:courseId" element={
+                <ProtectedRoute>
+                  <CourseOverview />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/student/course/:courseId/lesson/:lessonId" element={
+                <ProtectedRoute>
+                  <LessonView />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/admin/dashboard" element={
+                <ProtectedRoute allowedRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+
+              {/* Legacy dashboard route redirect */}
               <Route path="/dashboard" element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <Navigate to="/student/dashboard" replace />
+                  {/* The ProtectedRoute logic will actually redirect based on role anyway */}
                 </ProtectedRoute>
               } />
 
               {/* Placeholder routes for future pages */}
-              <Route path="/courses" element={
+              <Route path="/student/courses" element={
                 <ProtectedRoute>
                   <div className="p-8">Courses page coming soon</div>
                 </ProtectedRoute>
               } />
 
               {/* Default redirect */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>
         </Router>

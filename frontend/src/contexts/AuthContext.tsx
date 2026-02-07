@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User } from '../types/api';
+import type { User } from '../types/api';
 import { authApi } from '../services/api';
 import { toast } from 'sonner';
 
@@ -7,7 +7,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (credentials: { email: string; password: string }) => Promise<void>;
+  login: (credentials: { email: string; password: string }) => Promise<User>;
   register: (userData: { name: string; email: string; password: string; role?: 'instructor' | 'learner' }) => Promise<void>;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
@@ -55,12 +55,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (credentials: { email: string; password: string }): Promise<User> => {
     try {
-      const response = await authApi.login({ email, password });
+      const response = await authApi.login(credentials);
       localStorage.setItem('access_token', response.access_token);
       setUser(response.user);
       toast.success('Welcome back!');
+      return response.user;
     } catch (error: any) {
       toast.error(error.message || 'Login failed');
       throw error;
@@ -69,13 +70,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const register = async (userData: { name: string; email: string; password: string; role?: 'instructor' | 'learner' }) => {
     try {
-      const user = await authApi.register({
+      await authApi.register({
         name: userData.name,
         email: userData.email,
         password: userData.password,
         role: userData.role || 'learner'
       });
-      
+
       // Auto-login after registration
       await login({ email: userData.email, password: userData.password });
       toast.success('Account created successfully!');
