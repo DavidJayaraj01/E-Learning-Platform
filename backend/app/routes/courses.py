@@ -4,7 +4,7 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from app.database.config import get_async_session
-from app.models.models import Course, Lesson, Quiz, CourseEnrollment, CourseReview
+from app.models.models import Course, Lesson, Quiz, CourseEnrollment, CourseReview, User
 from app.schemas.courses import CourseCreate, CourseResponse, CourseUpdate
 
 router = APIRouter()
@@ -16,7 +16,33 @@ async def create_course(
     db: AsyncSession = Depends(get_async_session)
 ):
     """Create a new course"""
-    db_course = Course(**course_data.dict())
+    course_dict = course_data.dict()
+    
+    # Convert Pydantic URL objects to strings for database storage
+    if course_dict.get('image_url'):
+        course_dict['image_url'] = str(course_dict['image_url'])
+    if course_dict.get('website_url'):
+        course_dict['website_url'] = str(course_dict['website_url'])
+    
+    # Handle course_admin_id validation
+    if course_dict.get('course_admin_id') is not None:
+        admin_id = course_dict['course_admin_id']
+        
+        # If admin_id is 0, treat it as None (no admin assigned)
+        if admin_id == 0:
+            course_dict['course_admin_id'] = None
+        else:
+            # Verify that the user exists
+            user_result = await db.execute(select(User).where(User.id == admin_id))
+            user = user_result.scalars().first()
+            
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"User with ID {admin_id} does not exist"
+                )
+    
+    db_course = Course(**course_dict)
     
     db.add(db_course)
     await db.commit()
@@ -128,7 +154,32 @@ async def update_course(
         )
     
     # Update fields
-    for field, value in course_update.dict(exclude_unset=True).items():
+    update_data = course_update.dict(exclude_unset=True)
+    
+    # Convert Pydantic URL objects to strings for database storage
+    if 'image_url' in update_data and update_data['image_url']:
+        update_data['image_url'] = str(update_data['image_url'])
+    if 'website_url' in update_data and update_data['website_url']:
+        update_data['website_url'] = str(update_data['website_url'])
+    
+    # Handle course_admin_id validation for updates
+    if 'course_admin_id' in update_data:
+        admin_id = update_data['course_admin_id']
+        
+        if admin_id == 0:
+            update_data['course_admin_id'] = None
+        elif admin_id is not None:
+            # Verify that the user exists
+            user_result = await db.execute(select(User).where(User.id == admin_id))
+            user = user_result.scalars().first()
+            
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"User with ID {admin_id} does not exist"
+                )
+    
+    for field, value in update_data.items():
         setattr(course, field, value)
     
     await db.commit()

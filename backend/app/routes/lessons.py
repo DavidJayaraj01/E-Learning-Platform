@@ -32,7 +32,9 @@ async def create_lesson(
             detail="Course not found"
         )
     
-    db_lesson = Lesson(**lesson_data.dict())
+    lesson_dict = lesson_data.dict()
+    
+    db_lesson = Lesson(**lesson_dict)
     
     db.add(db_lesson)
     await db.commit()
@@ -152,7 +154,9 @@ async def update_lesson(
         )
     
     # Update fields
-    for field, value in lesson_update.dict(exclude_unset=True).items():
+    update_data = lesson_update.dict(exclude_unset=True)
+    
+    for field, value in update_data.items():
         setattr(lesson, field, value)
     
     await db.commit()

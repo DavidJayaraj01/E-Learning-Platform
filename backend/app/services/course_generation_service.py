@@ -63,7 +63,7 @@ class LLMClient:
             raise ValueError(f"Unknown provider: {self.provider}")
     
     async def _generate_ollama(self, prompt: str, system_prompt: str = None) -> str:
-        """Generate using local Ollama"""
+        """Generate using local Ollama with Gemma 3 4B"""
         import httpx
         
         messages = []
@@ -71,8 +71,11 @@ class LLMClient:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
         
+        logger.info(f"Sending request to Ollama with model: {self.model}")
+        
         try:
-            async with httpx.AsyncClient(timeout=120.0) as client:
+            # Longer timeout for generation (5 minutes for complex content)
+            async with httpx.AsyncClient(timeout=httpx.Timeout(300.0, connect=30.0)) as client:
                 response = await client.post(
                     "http://localhost:11434/api/chat",
                     json={
@@ -87,9 +90,23 @@ class LLMClient:
                 )
                 response.raise_for_status()
                 result = response.json()
-                return result.get("message", {}).get("content", "")
+                content = result.get("message", {}).get("content", "")
+                
+                if not content:
+                    logger.warning("Ollama returned empty content")
+                    raise ValueError("Ollama returned empty response")
+                
+                logger.info(f"Ollama generation successful, received {len(content)} characters")
+                return content
+                
+        except httpx.TimeoutException as e:
+            logger.error(f"Ollama request timed out after 300s: {e}")
+            raise ValueError(f"LLM request timed out. Try reducing content size.") from e
+        except httpx.ConnectError as e:
+            logger.error(f"Cannot connect to Ollama at localhost:11434: {e}")
+            raise ValueError(f"Cannot connect to Ollama. Ensure 'ollama serve' is running.") from e
         except Exception as e:
-            logger.error(f"Ollama generation failed: {e}")
+            logger.error(f"Ollama generation failed: {type(e).__name__}: {e}")
             raise
     
     async def _generate_openai(self, prompt: str, system_prompt: str = None) -> str:
@@ -550,7 +567,7 @@ with only one correct answer. Respond with valid JSON only."""
             lesson = Lesson(
                 course_id=course.id,
                 title=lesson_data.get('title', 'Untitled Lesson'),
-                lesson_type=LessonType.TEXT,  # Default to text
+                lesson_type=LessonType.DOCUMENT,  # Use DOCUMENT instead of TEXT
                 description=lesson_data.get('content', '')[:5000],  # Store in description for now
                 order_index=lesson_data.get('order_index', 0)
             )
