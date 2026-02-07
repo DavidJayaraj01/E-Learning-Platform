@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ChevronLeft,
@@ -9,8 +9,12 @@ import {
   Image as ImageIcon,
   HelpCircle,
   Link as LinkIcon,
+  Sparkles,
+  Upload,
+  X,
+  Wand2,
 } from 'lucide-react';
-import { lessonsApi, coursesApi } from '../../../services/api';
+import { lessonsApi, coursesApi, aiApi } from '../../../services/api';
 import type { LessonCreate, LessonUpdate, Course } from '../../../types/api';
 import { toast } from 'sonner';
 
@@ -27,10 +31,15 @@ const LessonForm: React.FC = () => {
   const { courseId, lessonId } = useParams();
   const navigate = useNavigate();
   const isEditing = !!lessonId;
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [course, setCourse] = useState<Course | null>(null);
   const [isLoading, setIsLoading] = useState(isEditing);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [contentMode, setContentMode] = useState<'manual' | 'ai' | 'upload'>('manual');
 
   const [formData, setFormData] = useState({
     title: '',
@@ -119,6 +128,75 @@ const LessonForm: React.FC = () => {
       case 'IMAGE': return { bg: 'bg-green-100', text: 'text-green-600', border: 'border-green-300' };
       case 'QUIZ': return { bg: 'bg-purple-100', text: 'text-purple-600', border: 'border-purple-300' };
       default: return { bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-300' };
+    }
+  };
+
+  const handleAIGenerate = async () => {
+    if (!aiPrompt.trim()) {
+      toast.error('Please enter a topic or prompt');
+      return;
+    }
+
+    if (!courseId) {
+      toast.error('Course ID is required');
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const response = await aiApi.generateAndSaveLesson({
+        course_id: parseInt(courseId),
+        topic: aiPrompt,
+        lesson_type: formData.lesson_type,
+        additional_context: course?.title ? `This is for a course titled "${course.title}"` : undefined,
+      });
+
+      toast.success(response.message || 'Lesson generated and saved successfully!');
+      navigate(`/admin/courses/${courseId}/lessons`);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to generate lesson. Make sure Ollama is running and you have permission.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type based on lesson type
+    if (formData.lesson_type === 'DOCUMENT') {
+      if (!file.type.match(/text.*|application\/pdf|application\/msword|application\/vnd.openxmlformats/)) {
+        toast.error('Please upload a document file (PDF, DOC, TXT)');
+        return;
+      }
+    } else if (formData.lesson_type === 'IMAGE') {
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please upload an image file');
+        return;
+      }
+    }
+
+    setUploadedFile(file);
+
+    // Read text files and populate description
+    if (file.type.startsWith('text/') || file.name.endsWith('.txt') || file.name.endsWith('.md')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        setFormData(prev => ({ ...prev, description: content }));
+        toast.success('File content loaded');
+      };
+      reader.readAsText(file);
+    } else {
+      toast.success(`File "${file.name}" uploaded`);
+    }
+  };
+
+  const removeUploadedFile = () => {
+    setUploadedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -301,6 +379,146 @@ const LessonForm: React.FC = () => {
               <h2 className="font-bold text-slate-900 mb-4">
                 {formData.lesson_type === 'DOCUMENT' ? 'Document Content' : 'Image Description'}
               </h2>
+
+              {/* Content Mode Tabs */}
+              <div className="flex gap-2 mb-4">
+                <button
+                  type="button"
+                  onClick={() => setContentMode('manual')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                    contentMode === 'manual'
+                      ? 'bg-[#7E2259] text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  <FileText size={16} />
+                  Manual
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setContentMode('ai')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                    contentMode === 'ai'
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  <Sparkles size={16} />
+                  AI Generate
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setContentMode('upload')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                    contentMode === 'upload'
+                      ? 'bg-green-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  <Upload size={16} />
+                  Upload
+                </button>
+              </div>
+
+              {/* AI Generation Mode */}
+              {contentMode === 'ai' && (
+                <div className="mb-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="p-2 bg-purple-100 rounded-lg">
+                      <Wand2 className="text-purple-600" size={20} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-purple-900">AI Content Generator</h3>
+                      <p className="text-sm text-purple-700">
+                        Enter a topic and let AI create the content for you using Gemma 12B
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      placeholder="Enter topic (e.g., 'Introduction to Python variables')"
+                      className="flex-1 px-4 py-3 rounded-xl border border-purple-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAIGenerate())}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAIGenerate}
+                      disabled={isGenerating || !aiPrompt.trim()}
+                      className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-bold hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <Loader2 size={18} className="animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={18} />
+                          Generate
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Upload Mode */}
+              {contentMode === 'upload' && (
+                <div className="mb-4 p-4 bg-green-50 rounded-xl border border-green-200">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    onChange={handleFileUpload}
+                    accept={formData.lesson_type === 'IMAGE' ? 'image/*' : '.txt,.md,.pdf,.doc,.docx'}
+                    className="hidden"
+                  />
+                  {uploadedFile ? (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-green-100 rounded-lg">
+                          {formData.lesson_type === 'IMAGE' ? (
+                            <ImageIcon className="text-green-600" size={20} />
+                          ) : (
+                            <FileText className="text-green-600" size={20} />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-green-900">{uploadedFile.name}</p>
+                          <p className="text-sm text-green-700">
+                            {(uploadedFile.size / 1024).toFixed(2)} KB
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={removeUploadedFile}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <X size={20} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full py-8 border-2 border-dashed border-green-300 rounded-xl text-center hover:bg-green-100/50 transition-colors"
+                    >
+                      <Upload className="mx-auto mb-2 text-green-500" size={32} />
+                      <p className="font-semibold text-green-900">Click to upload file</p>
+                      <p className="text-sm text-green-700">
+                        {formData.lesson_type === 'IMAGE'
+                          ? 'Supports: JPG, PNG, GIF, WebP'
+                          : 'Supports: TXT, MD, PDF, DOC'}
+                      </p>
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Content Textarea */}
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -323,12 +541,21 @@ const LessonForm: React.FC = () => {
                 <div className="p-2 bg-purple-100 rounded-lg">
                   <HelpCircle className="text-purple-600" size={24} />
                 </div>
-                <div>
+                <div className="flex-1">
                   <h3 className="font-bold text-purple-900">Quiz Content</h3>
                   <p className="text-sm text-purple-700 mt-1">
                     Quiz questions and answers are managed in the Quiz Builder. After creating this lesson, 
                     you can add questions through the course quiz management section.
                   </p>
+                  
+                  {/* AI Quiz Hint */}
+                  <div className="mt-4 p-3 bg-purple-100/50 rounded-lg flex items-start gap-2">
+                    <Sparkles className="text-purple-600 mt-0.5" size={16} />
+                    <p className="text-xs text-purple-800">
+                      <strong>Tip:</strong> You can use AI to automatically generate quiz questions in the Quiz Builder!
+                    </p>
+                  </div>
+                  
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}

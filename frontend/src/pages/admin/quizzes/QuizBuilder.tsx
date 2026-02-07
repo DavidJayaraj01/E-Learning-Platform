@@ -11,8 +11,10 @@ import {
   HelpCircle,
   Settings,
   X,
+  Sparkles,
+  Wand2,
 } from 'lucide-react';
-import { quizzesApi, coursesApi } from '../../../services/api';
+import { quizzesApi, coursesApi, aiApi } from '../../../services/api';
 import type { Course, QuizCreate, QuizUpdate, QuizQuestion } from '../../../types/api';
 import { toast } from 'sonner';
 
@@ -43,6 +45,13 @@ const QuizBuilder: React.FC = () => {
   const [course, setCourse] = useState<Course | null>(null);
   const [isLoading, setIsLoading] = useState(isEditing);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [aiTopic, setAiTopic] = useState('');
+  const [showAIPanel, setShowAIPanel] = useState(false);
+  const [aiSettings, setAiSettings] = useState({
+    numQuestions: 5,
+    difficulty: 'medium' as 'easy' | 'medium' | 'hard',
+  });
 
   const [formData, setFormData] = useState({
     title: '',
@@ -183,6 +192,37 @@ const QuizBuilder: React.FC = () => {
       }
       return q;
     }));
+  };
+
+  const handleAIGenerate = async () => {
+    if (!aiTopic.trim()) {
+      toast.error('Please enter a topic for the quiz');
+      return;
+    }
+
+    if (!courseId) {
+      toast.error('Course ID is required');
+      return;
+    }
+
+    setIsGeneratingAI(true);
+    try {
+      const response = await aiApi.generateAndSaveQuiz({
+        course_id: parseInt(courseId),
+        topic: aiTopic,
+        num_questions: aiSettings.numQuestions,
+        difficulty: aiSettings.difficulty,
+        passing_score: formData.passing_score || 70,
+        time_limit: formData.time_limit || null,
+      });
+
+      toast.success(response.message || 'Quiz generated and saved successfully!');
+      navigate(`/admin/courses/${courseId}/quizzes`);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to generate quiz. Make sure Ollama is running and you have permission.');
+    } finally {
+      setIsGeneratingAI(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -455,15 +495,119 @@ const QuizBuilder: React.FC = () => {
                 <HelpCircle size={20} className="text-purple-500" />
                 Questions ({questions.length})
               </h2>
-              <button
-                type="button"
-                onClick={addQuestion}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-purple-200 text-purple-600 font-medium text-sm hover:bg-purple-50 transition-colors"
-              >
-                <Plus size={16} />
-                Add Question
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAIPanel(!showAIPanel)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium text-sm transition-colors ${
+                    showAIPanel
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+                      : 'border border-purple-200 text-purple-600 hover:bg-purple-50'
+                  }`}
+                >
+                  <Sparkles size={16} />
+                  AI Generate
+                </button>
+                <button
+                  type="button"
+                  onClick={addQuestion}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg border border-purple-200 text-purple-600 font-medium text-sm hover:bg-purple-50 transition-colors"
+                >
+                  <Plus size={16} />
+                  Add Question
+                </button>
+              </div>
             </div>
+
+            {/* AI Generation Panel */}
+            {showAIPanel && (
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200 p-6 space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <Wand2 className="text-purple-600" size={24} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-purple-900">AI Quiz Generator</h3>
+                    <p className="text-sm text-purple-700">
+                      Enter a topic and let AI generate quiz questions using Gemma 12B
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-purple-900 mb-2">
+                    Topic / Subject *
+                  </label>
+                  <input
+                    type="text"
+                    value={aiTopic}
+                    onChange={(e) => setAiTopic(e.target.value)}
+                    placeholder="e.g., Python Data Types, JavaScript Basics, Machine Learning Fundamentals"
+                    className="w-full px-4 py-3 rounded-xl border border-purple-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAIGenerate())}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-purple-900 mb-2">
+                      Number of Questions
+                    </label>
+                    <select
+                      value={aiSettings.numQuestions}
+                      onChange={(e) => setAiSettings(prev => ({ ...prev, numQuestions: parseInt(e.target.value) }))}
+                      className="w-full px-4 py-3 rounded-xl border border-purple-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                    >
+                      {[3, 5, 7, 10, 15, 20].map(n => (
+                        <option key={n} value={n}>{n} questions</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-purple-900 mb-2">
+                      Difficulty
+                    </label>
+                    <select
+                      value={aiSettings.difficulty}
+                      onChange={(e) => setAiSettings(prev => ({ ...prev, difficulty: e.target.value as 'easy' | 'medium' | 'hard' }))}
+                      className="w-full px-4 py-3 rounded-xl border border-purple-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                    >
+                      <option value="easy">Easy</option>
+                      <option value="medium">Medium</option>
+                      <option value="hard">Hard</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAIPanel(false)}
+                    className="px-4 py-2 rounded-lg text-slate-600 font-medium hover:bg-slate-100 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAIGenerate}
+                    disabled={isGeneratingAI || !aiTopic.trim()}
+                    className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-bold hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {isGeneratingAI ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={18} />
+                        Generate Questions
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {questions.length === 0 ? (
               <div className="bg-white rounded-xl border border-dashed border-slate-300 p-8 text-center">

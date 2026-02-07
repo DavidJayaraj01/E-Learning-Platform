@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
+import { coursesApi } from '../../services/api';
 import {
     Search,
     Moon,
@@ -22,32 +24,19 @@ const AdminDashboard: React.FC = () => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [newCourseName, setNewCourseName] = useState('');
 
-    const courses = [
-        {
-            id: 1,
-            title: 'Introduction to Odoo AI',
-            tags: ['AI', 'Technology', 'Advanced'],
-            views: '15',
-            contents: '6',
-            duration: '25:30',
-        },
-        {
-            id: 2,
-            title: 'Basics of Odoo CRM',
-            tags: ['CRM', 'Beginner'],
-            views: '20',
-            contents: '8',
-            duration: '20:35',
-        },
-        {
-            id: 3,
-            title: 'About Odoo Courses',
-            tags: ['Overview'],
-            views: '10',
-            contents: '5',
-            duration: '10:20',
-        }
-    ];
+    // Fetch courses from API
+    const { data: courses = [], isLoading } = useQuery({
+        queryKey: ['admin-courses'],
+        queryFn: () => coursesApi.list({ published_only: false }),
+    });
+
+    // Format duration from seconds to MM:SS
+    const formatDuration = (seconds?: number) => {
+        if (!seconds) return '0:00';
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
 
     const handleCreateCourse = (e: React.FormEvent) => {
         e.preventDefault();
@@ -147,54 +136,77 @@ const AdminDashboard: React.FC = () => {
                 </div>
 
                 {/* Course List */}
-                <div className="space-y-6">
-                    {courses.filter(c => c.title.toLowerCase().includes(searchQuery.toLowerCase())).map((course) => (
-                        <div key={course.id} className="bg-white rounded-[2.5rem] p-10 shadow-[0_4px_20px_-3px_rgba(0,0,0,0.03),0_10px_25px_-2px_rgba(0,0,0,0.02)] border border-gray-50 flex flex-col md:flex-row items-center justify-between relative group hover:shadow-[0_8px_30px_-5px_rgba(0,0,0,0.08)] transition-all">
-                            <div className="flex-1 w-full">
-                                <h3 className="text-2xl font-black text-[#2D2D2D] mb-6">{course.title}</h3>
-                                <div className="flex flex-wrap gap-3">
-                                    {course.tags.map(tag => (
-                                        <span key={tag} className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#F8F1F6] text-[#7E2259] rounded-full text-xs font-black uppercase tracking-wider transition-colors hover:bg-[#F3E6F0] cursor-default">
-                                            {tag}
-                                            <X size={14} className="text-[#7E2259]/30 hover:text-[#7E2259] cursor-pointer" />
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="flex items-center justify-center gap-12 lg:gap-24 px-8 md:px-16 w-full md:w-auto my-10 md:my-0">
-                                <div className="text-center group/stat">
-                                    <div className="text-4xl font-black text-[#2D2D2D]">{course.views}</div>
-                                    <div className="text-[11px] font-black text-[#B0BCC7] uppercase tracking-[0.2em] mt-2 group-hover/stat:text-[#7E2259] transition-colors">Views</div>
-                                </div>
-                                <div className="text-center group/stat border-x border-gray-100 px-12 lg:px-24">
-                                    <div className="text-4xl font-black text-[#2D2D2D]">{course.contents}</div>
-                                    <div className="text-[11px] font-black text-[#B0BCC7] uppercase tracking-[0.2em] mt-2 group-hover/stat:text-[#7E2259] transition-colors">Contents</div>
-                                </div>
-                                <div className="text-center group/stat">
-                                    <div className="text-4xl font-black text-[#2D2D2D]">{course.duration}</div>
-                                    <div className="text-[11px] font-black text-[#B0BCC7] uppercase tracking-[0.2em] mt-2 group-hover/stat:text-[#7E2259] transition-colors">Duration</div>
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col items-center md:items-end gap-4 min-w-[160px] w-full md:w-auto">
-                                <div className="relative w-full flex justify-end items-center gap-3">
-                                    <div className="absolute -top-12 -right-2 transform rotate-[-12deg] z-10">
-                                        <div className="bg-[#E7F7EF] text-[#22C55E] text-[12px] font-black px-5 py-2 rounded-xl border-2 border-[#E7F7EF] shadow-[0_4px_12px_-2px_rgba(34,197,94,0.15)] select-none">
-                                        </div>
+                {isLoading ? (
+                    <div className="flex items-center justify-center py-20">
+                        <div className="w-8 h-8 border-2 border-[#7E2259] border-t-transparent rounded-full animate-spin" />
+                    </div>
+                ) : courses.length === 0 ? (
+                    <div className="bg-white rounded-[2.5rem] p-20 text-center shadow-sm border border-gray-100">
+                        <p className="text-gray-400 text-lg">No courses found. Create your first course to get started!</p>
+                    </div>
+                ) : (
+                    <div className="space-y-6">
+                        {courses.filter(c => c.title.toLowerCase().includes(searchQuery.toLowerCase())).map((course) => (
+                            <div key={course.id} className="bg-white rounded-[2.5rem] p-10 shadow-[0_4px_20px_-3px_rgba(0,0,0,0.03),0_10px_25px_-2px_rgba(0,0,0,0.02)] border border-gray-50 flex flex-col md:flex-row items-center justify-between relative group hover:shadow-[0_8px_30px_-5px_rgba(0,0,0,0.08)] transition-all">
+                                <div className="flex-1 w-full">
+                                    <h3 className="text-2xl font-black text-[#2D2D2D] mb-6">{course.title}</h3>
+                                    <div className="flex flex-wrap gap-3">
+                                        {course.category && (
+                                            <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#F8F1F6] text-[#7E2259] rounded-full text-xs font-black uppercase tracking-wider transition-colors hover:bg-[#F3E6F0] cursor-default">
+                                                {course.category}
+                                            </span>
+                                        )}
+                                        {course.difficulty && (
+                                            <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#F8F1F6] text-[#7E2259] rounded-full text-xs font-black uppercase tracking-wider transition-colors hover:bg-[#F3E6F0] cursor-default">
+                                                {course.difficulty}
+                                            </span>
+                                        )}
+                                        {course.published && (
+                                            <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#E7F7EF] text-[#22C55E] rounded-full text-xs font-black uppercase tracking-wider transition-colors cursor-default">
+                                                PUBLISHED
+                                            </span>
+                                        )}
+                                        {!course.published && (
+                                            <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#FEF3E2] text-[#F59E0B] rounded-full text-xs font-black uppercase tracking-wider transition-colors cursor-default">
+                                                DRAFT
+                                            </span>
+                                        )}
                                     </div>
-                                    <button className="p-3.5 text-gray-400 hover:text-[#7E2259] bg-white border border-gray-100 rounded-[1rem] transition-all hover:shadow-md">
-                                        <Share2 size={20} />
+                                </div>
+
+                                <div className="flex items-center justify-center gap-12 lg:gap-24 px-8 md:px-16 w-full md:w-auto my-10 md:my-0">
+                                    <div className="text-center group/stat">
+                                        <div className="text-4xl font-black text-[#2D2D2D]">{course.enrolled_count || 0}</div>
+                                        <div className="text-[11px] font-black text-[#B0BCC7] uppercase tracking-[0.2em] mt-2 group-hover/stat:text-[#7E2259] transition-colors">Enrolled</div>
+                                    </div>
+                                    <div className="text-center group/stat border-x border-gray-100 px-12 lg:px-24">
+                                        <div className="text-4xl font-black text-[#2D2D2D]">{course.lessons_count || 0}</div>
+                                        <div className="text-[11px] font-black text-[#B0BCC7] uppercase tracking-[0.2em] mt-2 group-hover/stat:text-[#7E2259] transition-colors">Lessons</div>
+                                    </div>
+                                    <div className="text-center group/stat">
+                                        <div className="text-4xl font-black text-[#2D2D2D]">{formatDuration(course.estimated_duration)}</div>
+                                        <div className="text-[11px] font-black text-[#B0BCC7] uppercase tracking-[0.2em] mt-2 group-hover/stat:text-[#7E2259] transition-colors">Duration</div>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col items-center md:items-end gap-4 min-w-[160px] w-full md:w-auto">
+                                    <div className="relative w-full flex justify-end items-center gap-3">
+                                        <button className="p-3.5 text-gray-400 hover:text-[#7E2259] bg-white border border-gray-100 rounded-[1rem] transition-all hover:shadow-md">
+                                            <Share2 size={20} />
+                                        </button>
+                                    </div>
+                                    <button
+                                        onClick={() => navigate(`/admin/courses/${course.id}/edit`)}
+                                        className="w-full bg-[#7E2259] text-white px-10 py-4 rounded-[1.25rem] font-black flex items-center justify-center gap-3 hover:bg-[#6D1F4D] active:scale-95 transition-all shadow-xl shadow-[#7E2259]/20 group/btn"
+                                    >
+                                        <Edit3 size={20} className="group-hover/btn:rotate-12 transition-transform" />
+                                        Edit
                                     </button>
                                 </div>
-                                <button className="w-full bg-[#7E2259] text-white px-10 py-4 rounded-[1.25rem] font-black flex items-center justify-center gap-3 hover:bg-[#6D1F4D] active:scale-95 transition-all shadow-xl shadow-[#7E2259]/20 group/btn">
-                                    <Edit3 size={20} className="group-hover/btn:rotate-12 transition-transform" />
-                                    Edit
-                                </button>
                             </div>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                )}
 
                 {/* FAB */}
                 <button

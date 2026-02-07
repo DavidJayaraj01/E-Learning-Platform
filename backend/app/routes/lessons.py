@@ -4,12 +4,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from typing import List
 from app.database.config import get_async_session
-from app.models.models import Lesson, Course, UserLessonProgress
+from app.models.models import Lesson, Course, UserLessonProgress, User
 from app.schemas.lessons import (
     LessonCreate, LessonResponse, LessonUpdate,
     UserLessonProgressResponse
 )
 from app.enums import LessonStatus
+from app.dependencies.auth import require_instructor_or_admin
 
 router = APIRouter()
 
@@ -168,9 +169,13 @@ async def update_lesson(
 @router.delete("/{lesson_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_lesson(
     lesson_id: int,
-    db: AsyncSession = Depends(get_async_session)
+    db: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(require_instructor_or_admin)
 ):
-    """Delete lesson"""
+    """
+    Delete lesson.
+    Requires instructor/admin role and permission to manage the course.
+    """
     result = await db.execute(select(Lesson).where(Lesson.id == lesson_id))
     lesson = result.scalars().first()
     
@@ -178,6 +183,14 @@ async def delete_lesson(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Lesson not found"
+        )
+    
+    # Check permissions
+    from app.services.access_control_service import can_manage_course
+    if not await can_manage_course(lesson.course_id, current_user, db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to delete this lesson"
         )
     
     await db.delete(lesson)

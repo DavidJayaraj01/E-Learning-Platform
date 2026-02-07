@@ -37,7 +37,7 @@ const CourseForm: React.FC = () => {
     image_url: undefined,
     tags: [],
     website_url: undefined,
-    published: false,
+    published: true,
     visibility: 'EVERYONE',
     access_type: 'OPEN',
     price: 0,
@@ -98,7 +98,8 @@ const CourseForm: React.FC = () => {
       } else {
         const newCourse = await coursesApi.create(submitData);
         toast.success('Course created successfully');
-        navigate(`/admin/courses/${newCourse.id}/edit`);
+        // Redirect to lessons page to start adding content
+        navigate(`/admin/courses/${newCourse.id}/lessons`);
         return;
       }
       navigate('/admin/courses');

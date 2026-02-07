@@ -41,6 +41,8 @@ export interface Course {
   course_admin_id?: number;
   total_lessons: number;
   total_duration?: string;
+  duration?: string;
+  enrollments_count?: number;
   created_at: string;
   updated_at: string;
 }

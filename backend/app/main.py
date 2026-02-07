@@ -35,6 +35,7 @@ from app.routes import (
     quizzes,
     reviews,
     rag_generation,
+    ai_content,
 )
 
 
@@ -285,6 +286,12 @@ app.include_router(
     rag_generation.router,
     prefix=f"{API_V1_PREFIX}/rag",
     tags=["🤖 RAG Generation"],
+)
+
+app.include_router(
+    ai_content.router,
+    prefix=f"{API_V1_PREFIX}/ai",
+    tags=["🧠 AI Content"],
 )
 
 

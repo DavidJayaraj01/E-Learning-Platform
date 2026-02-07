@@ -352,10 +352,12 @@ async def update_quiz(
 @router.delete("/{quiz_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_quiz(
     quiz_id: int,
-    db: AsyncSession = Depends(get_async_session)
+    db: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(require_instructor_or_admin)
 ):
     """
     Delete a quiz and all its questions.
+    Requires instructor/admin role and permission to manage the course.
     """
     result = await db.execute(select(Quiz).where(Quiz.id == quiz_id))
     quiz = result.scalars().first()
@@ -364,6 +366,14 @@ async def delete_quiz(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Quiz not found"
+        )
+    
+    # Check permissions
+    from app.services.access_control_service import can_manage_course
+    if not await can_manage_course(quiz.course_id, current_user, db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to delete this quiz"
         )
     
     await db.delete(quiz)

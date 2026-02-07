@@ -1,5 +1,5 @@
 # Routes package initialization
-from . import auth, users, courses, lessons, quizzes, reviews, rag_generation
+from . import auth, users, courses, lessons, quizzes, reviews, rag_generation, ai_content
 
 __all__ = [
     'auth',
@@ -8,5 +8,6 @@ __all__ = [
     'lessons',
     'quizzes',
     'reviews',
-    'rag_generation'
+    'rag_generation',
+    'ai_content'
 ]

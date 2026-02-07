@@ -253,6 +253,16 @@ export const coursesApi = {
   async getEnrollments(courseId: number): Promise<CourseEnrollment[]> {
     return apiRequest<CourseEnrollment[]>(`/courses/${courseId}/enrollments`);
   },
+
+  async getMyCourses(): Promise<Course[]> {
+    return apiRequest<Course[]>('/courses/my-courses');
+  },
+
+  async enrollInCourse(courseId: number): Promise<void> {
+    return apiRequest<void>(`/courses/${courseId}/enroll`, {
+      method: 'POST',
+    });
+  },
 };
 
 // Lessons API
@@ -529,6 +539,112 @@ export const ragApi = {
       method: 'PUT',
       body: JSON.stringify(config),
     });
+  },
+};
+
+// AI Content Generation API
+export interface ContentGenerationRequest {
+  topic: string;
+  content_type: 'document' | 'video_script' | 'image_description';
+  additional_context?: string;
+}
+
+export interface ContentGenerationResponse {
+  content: string;
+  title_suggestion?: string;
+}
+
+export interface QuizGenerationRequest {
+  topic: string;
+  num_questions?: number;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  question_types?: ('multiple_choice' | 'true_false' | 'open_ended')[];
+}
+
+export interface GeneratedQuizQuestion {
+  question_text: string;
+  question_type: string;
+  points: number;
+  answers: { answer_text: string; is_correct: boolean }[];
+}
+
+export interface QuizGenerationResponse {
+  title_suggestion: string;
+  description_suggestion: string;
+  questions: GeneratedQuizQuestion[];
+}
+
+export interface AIHealthResponse {
+  ollama_running: boolean;
+  available_models?: string[];
+  gemma_available?: boolean;
+  default_model?: string;
+  error?: string;
+  message?: string;
+}
+
+export interface GenerateAndSaveLessonRequest {
+  course_id: number;
+  topic: string;
+  lesson_type?: string;
+  additional_context?: string;
+}
+
+export interface GenerateAndSaveLessonResponse {
+  success: boolean;
+  lesson_id: number;
+  title: string;
+  message: string;
+}
+
+export interface GenerateAndSaveQuizRequest {
+  course_id: number;
+  topic: string;
+  num_questions?: number;
+  difficulty?: string;
+  passing_score?: number;
+  time_limit?: number;
+}
+
+export interface GenerateAndSaveQuizResponse {
+  success: boolean;
+  quiz_id: number;
+  title: string;
+  num_questions: number;
+  message: string;
+}
+
+export const aiApi = {
+  async generateContent(request: ContentGenerationRequest): Promise<ContentGenerationResponse> {
+    return apiRequest<ContentGenerationResponse>('/ai/generate-content', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  },
+
+  async generateQuiz(request: QuizGenerationRequest): Promise<QuizGenerationResponse> {
+    return apiRequest<QuizGenerationResponse>('/ai/generate-quiz', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  },
+
+  async generateAndSaveLesson(request: GenerateAndSaveLessonRequest): Promise<GenerateAndSaveLessonResponse> {
+    return apiRequest<GenerateAndSaveLessonResponse>('/ai/generate-and-save-lesson', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  },
+
+  async generateAndSaveQuiz(request: GenerateAndSaveQuizRequest): Promise<GenerateAndSaveQuizResponse> {
+    return apiRequest<GenerateAndSaveQuizResponse>('/ai/generate-and-save-quiz', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  },
+
+  async checkHealth(): Promise<AIHealthResponse> {
+    return apiRequest<AIHealthResponse>('/ai/health');
   },
 };
 

@@ -8,6 +8,7 @@ import { Toaster } from 'sonner';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import StudentDashboard from './pages/student/Dashboard';
+import BrowseCourses from './pages/student/BrowseCourses';
 import CourseOverview from './pages/student/CourseOverview';
 import LessonView from './pages/student/LessonView';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -303,7 +304,7 @@ function App() {
               {/* Placeholder routes for future pages */}
               <Route path="/student/courses" element={
                 <ProtectedRoute>
-                  <div className="p-8">Courses page coming soon</div>
+                  <BrowseCourses />
                 </ProtectedRoute>
               } />
 

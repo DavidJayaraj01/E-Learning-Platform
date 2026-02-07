@@ -72,6 +72,27 @@ async def get_courses(
     return courses
 
 
+@router.get("/my-courses", response_model=List[CourseResponse])
+async def get_my_courses(
+    db: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Get all courses the current user is enrolled in.
+    Returns list of courses with enrollment information.
+    """
+    # Get all enrollments for the current user
+    result = await db.execute(
+        select(Course)
+        .join(CourseEnrollment, Course.id == CourseEnrollment.course_id)
+        .where(CourseEnrollment.user_id == current_user.id)
+        .where(Course.published == True)
+    )
+    courses = result.scalars().all()
+    
+    return courses
+
+
 @router.get("/{course_id}", response_model=CourseResponse)
 async def get_course(
     course_id: int,
