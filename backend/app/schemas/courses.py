@@ -38,6 +38,7 @@ class CourseUpdate(BaseModel):
     visibility: Optional[VisibilityType] = None
     access_type: Optional[AccessType] = None
     price: Optional[Decimal] = None
+    course_admin_id: Optional[int] = None
 
 
 class CourseResponse(CourseBase):

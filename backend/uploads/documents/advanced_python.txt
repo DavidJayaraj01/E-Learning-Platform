@@ -1,0 +1,98 @@
+Advanced Python Programming Concepts
+
+Chapter 1: Object-Oriented Programming
+
+Python supports object-oriented programming (OOP) which allows you to create classes and objects. Classes are blueprints for creating objects, while objects are instances of classes.
+
+Class Definition:
+- Use the 'class' keyword to define a class
+- Methods are functions defined inside a class
+- The __init__ method is called when an object is created
+- The self parameter refers to the instance of the class
+
+Inheritance:
+- Allows a class to inherit attributes and methods from another class
+- The child class can override parent methods
+- Use super() to call parent class methods
+
+Polymorphism:
+- Same interface for different underlying data types
+- Method overriding allows different implementations
+- Duck typing - "if it walks like a duck and quacks like a duck, it's a duck"
+
+Chapter 2: Advanced Data Structures
+
+Dictionary Comprehensions:
+- Create dictionaries using concise syntax
+- Syntax: {key: value for item in iterable}
+- Can include conditional logic
+
+Generators:
+- Functions that return an iterator object
+- Use 'yield' keyword instead of 'return'
+- Memory efficient for large datasets
+- Support next() and iteration protocols
+
+Decorators:
+- Functions that modify other functions
+- Use @ syntax for application
+- Common uses: logging, timing, authentication
+- Can be stacked for multiple modifications
+
+Chapter 3: Concurrency and Parallelism
+
+Threading:
+- Allows concurrent execution of code
+- Global Interpreter Lock (GIL) limitations
+- Use threading module for I/O bound tasks
+- Thread safety and synchronization issues
+
+Asyncio:
+- Asynchronous programming library
+- Single-threaded concurrency
+- Excellent for I/O bound operations
+- Use async/await keywords
+- Event loop manages execution
+
+Multiprocessing:
+- True parallelism by using multiple processes
+- Bypasses GIL limitations
+- Higher memory overhead than threading
+- Use for CPU-bound tasks
+
+Chapter 4: Design Patterns
+
+Singleton Pattern:
+- Ensures only one instance of a class exists
+- Global point of access to the instance
+- Implementation using __new__ method
+
+Factory Pattern:
+- Creates objects without specifying exact classes
+- Encapsulates object creation logic
+- Improves code flexibility and maintainability
+
+Observer Pattern:
+- Defines one-to-many dependency between objects
+- When one object changes state, dependents are notified
+- Common in event-driven programming
+
+Chapter 5: Testing and Debugging
+
+Unit Testing:
+- Test individual components in isolation
+- Use unittest module for structured testing
+- Assert methods for validation
+- Test fixtures for setup and teardown
+
+Debugging Techniques:
+- Use pdb module for interactive debugging
+- Print statements for quick debugging
+- Logging for production debugging
+- IDE debuggers for visual debugging
+
+Mock Objects:
+- Replace dependencies during testing
+- Use unittest.mock for creating mocks
+- Verify method calls and return values
+- Isolate code under test
