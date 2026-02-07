@@ -48,7 +48,7 @@ const LandingPage: React.FC = () => {
                         </div>
 
                         <p className="text-slate-500 mb-8">
-                            Please select how you want to continue to the platform.
+                            Please select how you want to continue to LearnSphere.
                         </p>
 
                         <div className="grid grid-cols-1 gap-4">

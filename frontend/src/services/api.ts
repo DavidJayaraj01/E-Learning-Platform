@@ -646,6 +646,47 @@ export const aiApi = {
     });
   },
 
+  async generateFromDocument(
+    file: File,
+    request: {
+      extraction_type: 'lesson' | 'course' | 'quiz';
+      topic_focus?: string;
+      content_requirements?: string;
+      difficulty_level?: 'beginner' | 'intermediate' | 'advanced';
+      lesson_count?: number;
+      include_examples?: boolean;
+    }
+  ): Promise<ContentGenerationResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('extraction_type', request.extraction_type);
+    if (request.topic_focus) formData.append('topic_focus', request.topic_focus);
+    if (request.content_requirements) formData.append('content_requirements', request.content_requirements);
+    if (request.difficulty_level) formData.append('difficulty_level', request.difficulty_level);
+    if (request.lesson_count) formData.append('lesson_count', request.lesson_count.toString());
+    if (request.include_examples) formData.append('include_examples', request.include_examples.toString());
+
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(`${API_BASE_URL}/ai/generate-from-document`, {
+      method: 'POST',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new ApiError(
+        response.status,
+        errorData.detail || errorData.message || 'Document processing failed',
+        errorData
+      );
+    }
+
+    return response.json();
+  },
+
   async checkHealth(): Promise<AIHealthResponse> {
     return apiRequest<AIHealthResponse>('/ai/health');
   },

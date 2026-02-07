@@ -124,6 +124,7 @@ class Lesson(Base):
     title = Column(String(500), nullable=False)
     lesson_type = Column(ENUM(LessonType, values_callable=lambda x: [e.value for e in x], name='lessontype'), nullable=False)
     description = Column(TEXT)
+    content = Column(TEXT)  # For storing RAG-generated or manually entered lesson content
     responsible_id = Column(Integer, ForeignKey("users.id"))
     order_index = Column(Integer, default=0)
     duration = Column(Interval, server_default=text("'0 minutes'::interval"))

@@ -67,14 +67,14 @@ async def lifespan(app: FastAPI):
     - Resource initialization
     """
     # Startup
-    logger.info("🚀 Starting E-Learning Platform API...")
+    logger.info("🚀 Starting LearnSphere API...")
     logger.info(f"📌 Environment: {settings.environment}")
     logger.info(f"📦 API Version: 1.0.0")
     
     yield
     
     # Shutdown
-    logger.info("🛑 Shutting down E-Learning Platform API...")
+    logger.info("🛑 Shutting down LearnSphere API...")
     await async_engine.dispose()
     logger.info("✅ Cleanup complete. Goodbye!")
 
@@ -124,9 +124,9 @@ OPENAPI_TAGS = [
 # =============================================================================
 
 app = FastAPI(
-    title="E-Learning Platform API",
+    title="LearnSphere API",
     description="""
-## 📚 E-Learning Platform
+## 📚 LearnSphere
 
 A comprehensive REST API for managing online courses with **AI-powered course generation**.
 
@@ -157,7 +157,7 @@ Upload any document (PDF, TXT, DOCX) and let AI create complete courses:
     version="1.0.0",
     terms_of_service="https://example.com/terms",
     contact={
-        "name": "E-Learning Platform Support",
+        "name": "LearnSphere Support",
         "url": "https://example.com/support",
         "email": "support@example.com",
     },
@@ -329,12 +329,12 @@ app.include_router(
 )
 async def root() -> Dict[str, Any]:
     """
-    ## Welcome to E-Learning Platform API
+    ## Welcome to LearnSphere API
     
     Returns API information and available endpoints for navigation.
     """
     return {
-        "name": "E-Learning Platform API",
+        "name": "LearnSphere API",
         "version": "1.0.0",
         "status": "operational",
         "documentation": {
@@ -427,7 +427,7 @@ async def api_info() -> Dict[str, Any]:
     """
     return {
         "api": {
-            "name": "E-Learning Platform API",
+            "name": "LearnSphere API",
             "version": "1.0.0",
             "api_version": "v1",
             "environment": settings.environment,

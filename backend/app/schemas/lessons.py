@@ -9,6 +9,7 @@ class LessonBase(BaseModel):
     title: str
     lesson_type: LessonType
     description: Optional[str] = None
+    content: Optional[str] = None  # For RAG-generated or manually entered lesson content
     order_index: int = 0
     duration: Optional[timedelta] = None
 
@@ -24,6 +25,7 @@ class LessonUpdate(BaseModel):
     title: Optional[str] = None
     lesson_type: Optional[LessonType] = None
     description: Optional[str] = None
+    content: Optional[str] = None  # For updating lesson content
     order_index: Optional[int] = None
     duration: Optional[timedelta] = None
 

@@ -64,7 +64,7 @@ def test_health():
         print(f"❌ Health check failed: {e}")
 
 if __name__ == "__main__":
-    print("🧪 E-Learning Platform CORS & API Test")
+    print("🧪 LearnSphere CORS & API Test")
     print("=" * 50)
     test_cors()
     test_health()

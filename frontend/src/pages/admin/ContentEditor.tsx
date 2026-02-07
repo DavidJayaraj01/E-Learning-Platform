@@ -340,7 +340,7 @@ const ContentEditor: React.FC = () => {
 
             <footer className="py-8 text-center bg-white border-t border-slate-50">
                 <p className="text-sm font-bold text-slate-400">
-                    © 2024 E-Learning Content Management System. All rights reserved.
+                    © 2024 LearnSphere Content Management System. All rights reserved.
                 </p>
             </footer>
 

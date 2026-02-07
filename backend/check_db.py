@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Quick database check for the E-Learning Platform.
+Quick database check for LearnSphere.
 Verifies database connectivity and user role consistency.
 """
 
@@ -15,7 +15,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://elearning:elearni
 
 async def check_database():
     """Check database connection and data"""
-    print("🔍 Checking E-Learning Platform Database...")
+    print("🔍 Checking LearnSphere Database...")
     print(f"📍 Database URL: {DATABASE_URL}")
     
     engine = create_async_engine(DATABASE_URL, echo=False)

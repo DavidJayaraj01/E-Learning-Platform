@@ -73,7 +73,7 @@ const Register: React.FC = () => {
             Create your account
           </h1>
           <p className="text-slate-500 font-medium">
-            Join our e-learning community today
+            Join our LearnSphere community today
           </p>
         </div>
 

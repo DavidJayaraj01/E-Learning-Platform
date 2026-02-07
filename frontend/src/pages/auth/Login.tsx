@@ -59,7 +59,7 @@ const Login: React.FC = () => {
             {role === 'ADMIN' ? 'Admin Sign In' : role === 'LEARNER' ? 'Student Sign In' : 'Sign In to Your Account'}
           </h1>
           <p className="text-slate-500 font-medium">
-            Welcome back to the Learning Portal
+            Welcome back to LearnSphere
           </p>
         </div>
 
@@ -185,7 +185,7 @@ const Login: React.FC = () => {
 
         {/* Footer */}
         <p className="mt-12 text-xs font-semibold text-slate-400 tracking-widest uppercase">
-          © 2024 E-Learning Platform Inc.
+          © 2024 LearnSphere Inc.
         </p>
 
       </div>
