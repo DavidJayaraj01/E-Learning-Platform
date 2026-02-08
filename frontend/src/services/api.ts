@@ -12,6 +12,7 @@ import type {
   QuizQuestion,
   QuizAttempt,
   CourseEnrollment,
+  CourseProgress,
   UserLessonProgress,
   CourseReview,
   CourseReviewCreate,
@@ -203,6 +204,11 @@ export const usersApi = {
   async getBadges(userId: number): Promise<Badge[]> {
     return apiRequest<Badge[]>(`/users/${userId}/badges`);
   },
+
+  async searchLearners(query: string, limit: number = 10): Promise<User[]> {
+    if (!query || query.length < 2) return [];
+    return apiRequest<User[]>(`/users/search/learners?q=${encodeURIComponent(query)}&limit=${limit}`);
+  },
 };
 
 // Courses API
@@ -266,6 +272,10 @@ export const coursesApi = {
       method: 'POST',
     });
   },
+
+  async getProgress(courseId: number): Promise<CourseProgress> {
+    return apiRequest<CourseProgress>(`/courses/${courseId}/progress`);
+  },
 };
 
 // Lessons API
@@ -309,6 +319,21 @@ export const lessonsApi = {
         method: 'POST',
       }
     );
+  },
+
+  async setVideo(lessonId: number, videoUrl: string): Promise<{message: string; url: string}> {
+    return apiRequest<{message: string; url: string}>(
+      `/lessons/${lessonId}/video?video_url=${encodeURIComponent(videoUrl)}`,
+      {
+        method: 'POST',
+      }
+    );
+  },
+
+  async deleteVideo(lessonId: number): Promise<void> {
+    return apiRequest<void>(`/lessons/${lessonId}/video`, {
+      method: 'DELETE',
+    });
   },
 };
 
@@ -390,6 +415,12 @@ export const quizzesApi = {
 
   async completeAttempt(attemptId: number): Promise<any> {
     return apiRequest<any>(`/quizzes/attempts/${attemptId}/complete`, {
+      method: 'POST',
+    });
+  },
+
+  async reportTabSwitch(attemptId: number): Promise<any> {
+    return apiRequest<any>(`/quizzes/attempts/${attemptId}/tab-switch`, {
       method: 'POST',
     });
   },
@@ -689,6 +720,111 @@ export const aiApi = {
 
   async checkHealth(): Promise<AIHealthResponse> {
     return apiRequest<AIHealthResponse>('/ai/health');
+  },
+};
+
+// Invitations API
+export interface CourseInvitation {
+  id: number;
+  course_id: number;
+  course_title: string;
+  inviter_name: string;
+  invitee_email: string;
+  status: 'pending' | 'accepted' | 'declined' | 'expired' | 'requested';
+  message?: string;
+  created_at: string;
+  responded_at?: string;
+}
+
+export interface InvitationListResponse {
+  invitations: CourseInvitation[];
+  total: number;
+}
+
+export const invitationsApi = {
+  // Admin: Send invitation
+  async sendInvitation(courseId: number, email: string, message?: string): Promise<CourseInvitation> {
+    return apiRequest<CourseInvitation>(`/invitations/courses/${courseId}/invitations`, {
+      method: 'POST',
+      body: JSON.stringify({ course_id: courseId, email, message }),
+    });
+  },
+
+  // Admin: Get course invitations
+  async getCourseInvitations(courseId: number, statusFilter?: string): Promise<InvitationListResponse> {
+    const params = statusFilter ? `?status_filter=${statusFilter}` : '';
+    return apiRequest<InvitationListResponse>(`/invitations/courses/${courseId}/invitations${params}`);
+  },
+
+  // Admin: Cancel invitation
+  async cancelInvitation(invitationId: number): Promise<{ message: string }> {
+    return apiRequest<{ message: string }>(`/invitations/invitations/${invitationId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Admin: Approve invitation request
+  async approveRequest(invitationId: number): Promise<{ message: string }> {
+    return apiRequest<{ message: string }>(`/invitations/invitations/${invitationId}/approve`, {
+      method: 'POST',
+    });
+  },
+
+  // Admin: Reject invitation request
+  async rejectRequest(invitationId: number): Promise<{ message: string }> {
+    return apiRequest<{ message: string }>(`/invitations/invitations/${invitationId}/reject`, {
+      method: 'POST',
+    });
+  },
+
+  // Learner: Request invitation
+  async requestInvitation(courseId: number, message?: string): Promise<{ message: string; invitation_id: number }> {
+    return apiRequest<{ message: string; invitation_id: number }>(`/invitations/request/${courseId}`, {
+      method: 'POST',
+      body: JSON.stringify({ message: message || undefined }),
+    });
+  },
+
+  // Learner: Get my invitations
+  async getMyInvitations(statusFilter?: string): Promise<InvitationListResponse> {
+    const params = statusFilter ? `?status_filter=${statusFilter}` : '';
+    return apiRequest<InvitationListResponse>(`/invitations/my-invitations${params}`);
+  },
+
+  // Admin: Get all course requests
+  async getAllCourseRequests(statusFilter?: string): Promise<InvitationListResponse> {
+    const params = statusFilter ? `?status_filter=${statusFilter}` : '';
+    return apiRequest<InvitationListResponse>(`/invitations/requests/all${params}`);
+  },
+
+  // Learner: Accept invitation
+  async acceptInvitation(invitationId: number): Promise<{ message: string }> {
+    return apiRequest<{ message: string }>(`/invitations/invitations/${invitationId}/accept`, {
+      method: 'POST',
+    });
+  },
+
+  // Learner: Decline invitation
+  async declineInvitation(invitationId: number): Promise<{ message: string }> {
+    return apiRequest<{ message: string }>(`/invitations/invitations/${invitationId}/decline`, {
+      method: 'POST',
+    });
+  },
+
+  // Payment: Process payment
+  async processPayment(courseId: number, paymentMethod: string = 'card'): Promise<{ success: boolean; message: string; enrollment_id?: number; transaction_id?: string }> {
+    return apiRequest<{ success: boolean; message: string; enrollment_id?: number; transaction_id?: string }>(`/invitations/payment/process`, {
+      method: 'POST',
+      body: JSON.stringify({ course_id: courseId, payment_method: paymentMethod }),
+    });
+  },
+
+  // Payment: Create Stripe checkout session
+  async createCheckoutSession(courseId: number): Promise<{ session_id: string; url: string }> {
+    return apiRequest<{ session_id: string; url: string }>(`/invitations/payment/create-checkout-session`, {
+      method: 'POST',
+      body: JSON.stringify({ course_id: courseId }),
+    });
   },
 };
 

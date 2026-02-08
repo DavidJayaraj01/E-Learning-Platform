@@ -7,6 +7,7 @@ from app.models.models import User, UserBadge, Badge
 from app.schemas.users import UserCreate, UserResponse, UserUpdate
 from app.schemas.misc import BadgeResponse
 from app.dependencies.auth import get_current_active_user
+from app.enums import UserRole
 
 router = APIRouter()
 
@@ -74,6 +75,35 @@ async def get_users(
 ):
     """Get all users"""
     result = await db.execute(select(User).offset(skip).limit(limit))
+    users = result.scalars().all()
+    return users
+
+
+@router.get("/search/learners", response_model=List[UserResponse])
+async def search_learners(
+    q: str = "",
+    limit: int = 10,
+    db: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Search learners by email (for invitation feature)"""
+    if not q or len(q) < 2:
+        return []
+    
+    # Only admins and instructors can search for learners
+    if current_user.role not in [UserRole.ADMIN, UserRole.INSTRUCTOR]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admins and instructors can search for learners"
+        )
+    
+    # Search by email (case insensitive)
+    result = await db.execute(
+        select(User)
+        .where(User.email.ilike(f"%{q}%"))
+        .where(User.role == UserRole.LEARNER)
+        .limit(limit)
+    )
     users = result.scalars().all()
     return users
 

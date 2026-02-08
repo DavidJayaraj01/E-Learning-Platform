@@ -116,6 +116,7 @@ class QuizAttemptResponse(BaseModel):
     started_at: datetime
     completed_at: Optional[datetime] = None
     earned_points: int
+    tab_switches: Optional[int] = 0
     
     class Config:
         from_attributes = True

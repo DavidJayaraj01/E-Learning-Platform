@@ -67,11 +67,7 @@ async def create_review(
             detail="You must be enrolled in the course to review it"
         )
     
-    if not enrollment.started_at:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You must start the course before reviewing it"
-        )
+    # Note: removed started_at check - enrolled users can review
     
     # Check if user already reviewed this course
     existing_review_result = await db.execute(

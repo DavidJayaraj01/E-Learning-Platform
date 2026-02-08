@@ -23,6 +23,7 @@ import LoadingSpinner from './components/common/LoadingSpinner';
 // Admin - Course Management
 import CourseList from './pages/admin/courses/CourseList';
 import CourseForm from './pages/admin/courses/CourseForm';
+import CourseEnrollments from './pages/admin/courses/CourseEnrollments';
 
 // Admin - Lesson Management
 import LessonList from './pages/admin/lessons/LessonList';
@@ -44,6 +45,9 @@ import UserForm from './pages/admin/users/UserForm';
 
 // Profile
 import Profile from './pages/Profile';
+
+// Student - Invitations
+import InvitationsPage from './pages/student/InvitationsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -67,20 +71,20 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRole?: 'ADMIN
   }
 
   if (allowedRole) {
-    // Admin can access everything
-    if (user.role === 'ADMIN') {
+    // Admin can access everything (check both cases for compatibility)
+    if (user.role === 'admin' || user.role === 'ADMIN') {
       return <>{children}</>;
     }
     // Instructor can access instructor and student pages
-    if (user.role === 'INSTRUCTOR' && (allowedRole === 'INSTRUCTOR' || allowedRole === 'LEARNER')) {
+    if ((user.role === 'instructor' || user.role === 'INSTRUCTOR') && (allowedRole === 'INSTRUCTOR' || allowedRole === 'LEARNER')) {
       return <>{children}</>;
     }
     // Student can only access student pages
-    if (user.role === 'LEARNER' && allowedRole === 'LEARNER') {
+    if ((user.role === 'learner' || user.role === 'LEARNER') && allowedRole === 'LEARNER') {
       return <>{children}</>;
     }
     // Redirect to appropriate dashboard if role doesn't match
-    if (user.role === 'ADMIN' || user.role === 'INSTRUCTOR') {
+    if (user.role === 'admin' || user.role === 'ADMIN' || user.role === 'instructor' || user.role === 'INSTRUCTOR') {
       return <Navigate to="/admin/dashboard" replace />;
     } else {
       return <Navigate to="/student/dashboard" replace />;
@@ -102,7 +106,7 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
 
   if (user) {
-    if (user.role === 'ADMIN' || user.role === 'INSTRUCTOR') {
+    if (user.role === 'admin' || user.role === 'ADMIN' || user.role === 'instructor' || user.role === 'INSTRUCTOR') {
       return <Navigate to="/admin/dashboard" replace />;
     } else {
       return <Navigate to="/student/dashboard" replace />;
@@ -190,6 +194,11 @@ function App() {
               <Route path="/admin/courses/:courseId/edit" element={
                 <ProtectedRoute allowedRole="ADMIN">
                   <CourseForm />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/courses/:courseId/enrollments" element={
+                <ProtectedRoute allowedRole="ADMIN">
+                  <CourseEnrollments />
                 </ProtectedRoute>
               } />
 
@@ -305,6 +314,13 @@ function App() {
               <Route path="/student/courses" element={
                 <ProtectedRoute allowedRole="LEARNER">
                   <BrowseCourses />
+                </ProtectedRoute>
+              } />
+
+              {/* Student - Invitations */}
+              <Route path="/student/invitations" element={
+                <ProtectedRoute allowedRole="LEARNER">
+                  <InvitationsPage />
                 </ProtectedRoute>
               } />
               

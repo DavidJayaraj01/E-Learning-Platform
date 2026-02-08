@@ -8,7 +8,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (credentials: { email: string; password: string }) => Promise<User>;
-  register: (userData: { name: string; email: string; password: string; role?: 'ADMIN' | 'INSTRUCTOR' | 'LEARNER' }) => Promise<void>;
+  register: (userData: { name: string; email: string; password: string; role?: 'admin' | 'instructor' | 'learner' }) => Promise<void>;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
 }
@@ -68,13 +68,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (userData: { name: string; email: string; password: string; role?: 'ADMIN' | 'INSTRUCTOR' | 'LEARNER' }) => {
+  const register = async (userData: { name: string; email: string; password: string; role?: 'admin' | 'instructor' | 'learner' }) => {
     try {
       await authApi.register({
         name: userData.name,
         email: userData.email,
         password: userData.password,
-        role: userData.role || 'LEARNER'
+        role: userData.role || 'learner'
       });
 
       // Auto-login after registration

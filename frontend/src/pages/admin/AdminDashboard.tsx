@@ -5,7 +5,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { coursesApi } from '../../services/api';
 import {
     Search,
-    Moon,
     LayoutGrid,
     Plus,
     X,
@@ -14,6 +13,7 @@ import {
     LayoutDashboard,
     List,
     Edit3,
+    Menu,
 } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
@@ -23,6 +23,8 @@ const AdminDashboard: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [newCourseName, setNewCourseName] = useState('');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     // Fetch courses from API
     const { data: courses = [], isLoading } = useQuery({
@@ -40,7 +42,6 @@ const AdminDashboard: React.FC = () => {
 
     const handleCreateCourse = (e: React.FormEvent) => {
         e.preventDefault();
-        // Handle course creation logic here
         console.log('Creating course:', newCourseName);
         setIsCreateModalOpen(false);
         setNewCourseName('');
@@ -50,17 +51,17 @@ const AdminDashboard: React.FC = () => {
     return (
         <div className="min-h-screen bg-[#FDFDFF] font-sans">
             {/* Header */}
-            {/* ... same as before ... */}
-            <header className="bg-white px-8 py-3 flex items-center justify-between border-b border-gray-100 sticky top-0 z-50">
-                <div className="flex items-center gap-10">
+            <header className="bg-white px-4 sm:px-8 py-3 flex items-center justify-between border-b border-gray-100 sticky top-0 z-50">
+                <div className="flex items-center gap-4 lg:gap-10">
                     <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/admin/dashboard')}>
                         <div className="bg-[#7E2259] p-1.5 rounded-lg">
                             <LayoutDashboard className="text-white w-5 h-5" />
                         </div>
-                        <span className="text-xl font-bold text-[#2D2D2D]">Admin<span className="text-slate-400">Panel</span></span>
+                        <span className="text-lg sm:text-xl font-bold text-[#2D2D2D]">Admin<span className="text-slate-400">Panel</span></span>
                     </div>
 
-                    <nav className="flex items-center gap-2">
+                    {/* Desktop Nav */}
+                    <nav className="hidden md:flex items-center gap-2">
                         {['Courses', 'Reporting', 'Settings'].map((tab) => (
                             <button
                                 key={tab}
@@ -73,7 +74,7 @@ const AdminDashboard: React.FC = () => {
                                         setActiveTab(tab);
                                     }
                                 }}
-                                className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === tab
+                                className={`px-4 lg:px-5 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === tab
                                     ? 'bg-[#7E2259] text-white shadow-lg shadow-[#7E2259]/20'
                                     : 'text-gray-500 hover:text-[#7E2259]'
                                     }`}
@@ -84,13 +85,10 @@ const AdminDashboard: React.FC = () => {
                     </nav>
                 </div>
 
-                <div className="flex items-center gap-6">
-                    <button className="text-gray-400 hover:text-[#7E2259] transition-colors">
-                        <Moon size={22} />
-                    </button>
-                    <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 sm:gap-6">
+                    <div className="hidden sm:flex items-center gap-4">
                         <div className="flex items-center gap-3">
-                            <div className="text-right hidden sm:block">
+                            <div className="text-right hidden lg:block">
                                 <p className="text-sm font-bold text-gray-900 leading-none">{user?.name || 'Admin User'}</p>
                                 <p className="text-[10px] text-gray-500 font-medium">Administrator</p>
                             </div>
@@ -108,29 +106,92 @@ const AdminDashboard: React.FC = () => {
                             <LogOut size={20} />
                         </button>
                     </div>
+
+                    {/* Mobile Menu Button */}
+                    <button
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        className="md:hidden p-2 text-gray-600 hover:text-[#7E2259] transition-colors"
+                    >
+                        {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                    </button>
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-8 py-10 relative">
+            {/* Mobile Menu */}
+            {isMobileMenuOpen && (
+                <div className="md:hidden bg-white border-b border-gray-100 shadow-lg">
+                    <nav className="p-4 space-y-2">
+                        {['Courses', 'Reporting', 'Settings'].map((tab) => (
+                            <button
+                                key={tab}
+                                onClick={() => {
+                                    setIsMobileMenuOpen(false);
+                                    if (tab === 'Reporting') {
+                                        navigate('/admin/reporting');
+                                    } else if (tab === 'Settings') {
+                                        navigate('/admin/settings');
+                                    } else {
+                                        setActiveTab(tab);
+                                    }
+                                }}
+                                className={`block w-full text-left px-4 py-3 rounded-lg text-sm font-semibold transition-all ${activeTab === tab
+                                    ? 'bg-[#7E2259] text-white'
+                                    : 'text-gray-500 hover:bg-gray-50 hover:text-[#7E2259]'
+                                    }`}
+                            >
+                                {tab}
+                            </button>
+                        ))}
+                    </nav>
+                    <div className="border-t border-gray-100 p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <img
+                                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin"
+                                alt="Admin"
+                                className="w-10 h-10 rounded-full border-2 border-white shadow-sm"
+                            />
+                            <div>
+                                <p className="text-sm font-bold text-gray-900">{user?.name || 'Admin User'}</p>
+                                <p className="text-xs text-gray-500">Administrator</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={logout}
+                            className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                            title="Logout"
+                        >
+                            <LogOut size={20} />
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 relative">
                 {/* Search and Toggle */}
-                <div className="flex items-center justify-between mb-8 gap-4">
-                    <div className="relative flex-1 max-w-lg">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between mb-6 sm:mb-8 gap-4">
+                    <div className="relative flex-1 sm:max-w-lg">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                         <input
                             type="text"
                             placeholder="Search the course..."
-                            className="w-full bg-white border-none rounded-xl pl-12 pr-4 py-3.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#7E2259]/10 transition-all text-gray-600"
+                            className="w-full bg-white border-none rounded-xl pl-12 pr-4 py-3 sm:py-3.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#7E2259]/10 transition-all text-gray-600"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
 
-                    <div className="flex items-center gap-0 bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
-                        <button className="p-3 text-gray-400 hover:text-[#7E2259] hover:bg-gray-50">
-                            <LayoutGrid size={22} />
+                    <div className="flex items-center gap-0 bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden self-end sm:self-auto">
+                        <button 
+                            onClick={() => setViewMode('grid')}
+                            className={`p-2.5 sm:p-3 transition-colors ${viewMode === 'grid' ? 'bg-[#7E2259] text-white' : 'text-gray-400 hover:text-[#7E2259] hover:bg-gray-50'}`}
+                        >
+                            <LayoutGrid size={20} className="sm:w-[22px] sm:h-[22px]" />
                         </button>
-                        <button className="p-3 bg-[#7E2259] text-white">
-                            <List size={22} />
+                        <button 
+                            onClick={() => setViewMode('list')}
+                            className={`p-2.5 sm:p-3 transition-colors ${viewMode === 'list' ? 'bg-[#7E2259] text-white' : 'text-gray-400 hover:text-[#7E2259] hover:bg-gray-50'}`}
+                        >
+                            <List size={20} className="sm:w-[22px] sm:h-[22px]" />
                         </button>
                     </div>
                 </div>
@@ -144,52 +205,78 @@ const AdminDashboard: React.FC = () => {
                     <div className="bg-white rounded-[2.5rem] p-20 text-center shadow-sm border border-gray-100">
                         <p className="text-gray-400 text-lg">No courses found. Create your first course to get started!</p>
                     </div>
-                ) : (
-                    <div className="space-y-6">
+                ) : viewMode === 'grid' ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {courses.filter(c => c.title.toLowerCase().includes(searchQuery.toLowerCase())).map((course) => (
-                            <div key={course.id} className="bg-white rounded-[2.5rem] p-10 shadow-[0_4px_20px_-3px_rgba(0,0,0,0.03),0_10px_25px_-2px_rgba(0,0,0,0.02)] border border-gray-50 flex flex-col md:flex-row items-center justify-between relative group hover:shadow-[0_8px_30px_-5px_rgba(0,0,0,0.08)] transition-all">
+                            <div key={course.id} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all group cursor-pointer" onClick={() => navigate(`/admin/courses/${course.id}/edit`)}>
+                                <div className="aspect-video bg-gradient-to-br from-[#7E2259]/10 to-[#7E2259]/5 rounded-xl mb-4 flex items-center justify-center">
+                                    {course.image_url ? (
+                                        <img src={course.image_url} alt={course.title} className="w-full h-full object-cover rounded-xl" />
+                                    ) : (
+                                        <LayoutDashboard className="w-12 h-12 text-[#7E2259]/30" />
+                                    )}
+                                </div>
+                                <h3 className="font-bold text-lg text-gray-900 mb-2 group-hover:text-[#7E2259] transition-colors line-clamp-2">{course.title}</h3>
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                    {course.published ? (
+                                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">Published</span>
+                                    ) : (
+                                        <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold">Draft</span>
+                                    )}
+                                </div>
+                                <div className="flex items-center justify-between text-sm text-gray-500">
+                                    <span>{(course as any).enrolled_count || (course as any).enrollments_count || 0} enrolled</span>
+                                    <span>{(course as any).lessons_count || course.total_lessons || 0} lessons</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="space-y-4 sm:space-y-6">
+                        {courses.filter(c => c.title.toLowerCase().includes(searchQuery.toLowerCase())).map((course) => (
+                            <div key={course.id} className="bg-white rounded-2xl sm:rounded-[2.5rem] p-5 sm:p-8 lg:p-10 shadow-[0_4px_20px_-3px_rgba(0,0,0,0.03),0_10px_25px_-2px_rgba(0,0,0,0.02)] border border-gray-50 flex flex-col lg:flex-row items-start lg:items-center justify-between relative group hover:shadow-[0_8px_30px_-5px_rgba(0,0,0,0.08)] transition-all">
                                 <div className="flex-1 w-full">
-                                    <h3 className="text-2xl font-black text-[#2D2D2D] mb-6">{course.title}</h3>
-                                    <div className="flex flex-wrap gap-3">
-                                        {course.category && (
-                                            <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#F8F1F6] text-[#7E2259] rounded-full text-xs font-black uppercase tracking-wider transition-colors hover:bg-[#F3E6F0] cursor-default">
-                                                {course.category}
+                                    <h3 className="text-xl sm:text-2xl font-black text-[#2D2D2D] mb-4 sm:mb-6">{course.title}</h3>
+                                    <div className="flex flex-wrap gap-2 sm:gap-3">
+                                        {(course as any).category && (
+                                            <span className="inline-flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 bg-[#F8F1F6] text-[#7E2259] rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider transition-colors hover:bg-[#F3E6F0] cursor-default">
+                                                {(course as any).category}
                                             </span>
                                         )}
-                                        {course.difficulty && (
-                                            <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#F8F1F6] text-[#7E2259] rounded-full text-xs font-black uppercase tracking-wider transition-colors hover:bg-[#F3E6F0] cursor-default">
-                                                {course.difficulty}
+                                        {(course as any).difficulty && (
+                                            <span className="inline-flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 bg-[#F8F1F6] text-[#7E2259] rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider transition-colors hover:bg-[#F3E6F0] cursor-default">
+                                                {(course as any).difficulty}
                                             </span>
                                         )}
                                         {course.published && (
-                                            <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#E7F7EF] text-[#22C55E] rounded-full text-xs font-black uppercase tracking-wider transition-colors cursor-default">
+                                            <span className="inline-flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 bg-[#E7F7EF] text-[#22C55E] rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider transition-colors cursor-default">
                                                 PUBLISHED
                                             </span>
                                         )}
                                         {!course.published && (
-                                            <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#FEF3E2] text-[#F59E0B] rounded-full text-xs font-black uppercase tracking-wider transition-colors cursor-default">
+                                            <span className="inline-flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 bg-[#FEF3E2] text-[#F59E0B] rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider transition-colors cursor-default">
                                                 DRAFT
                                             </span>
                                         )}
                                     </div>
                                 </div>
 
-                                <div className="flex items-center justify-center gap-12 lg:gap-24 px-8 md:px-16 w-full md:w-auto my-10 md:my-0">
+                                <div className="flex items-center justify-center gap-6 sm:gap-12 lg:gap-16 px-0 sm:px-8 lg:px-16 w-full lg:w-auto my-6 lg:my-0">
                                     <div className="text-center group/stat">
-                                        <div className="text-4xl font-black text-[#2D2D2D]">{course.enrolled_count || 0}</div>
-                                        <div className="text-[11px] font-black text-[#B0BCC7] uppercase tracking-[0.2em] mt-2 group-hover/stat:text-[#7E2259] transition-colors">Enrolled</div>
+                                        <div className="text-2xl sm:text-4xl font-black text-[#2D2D2D]">{(course as any).enrolled_count || course.enrollments_count || 0}</div>
+                                        <div className="text-[9px] sm:text-[11px] font-black text-[#B0BCC7] uppercase tracking-[0.1em] sm:tracking-[0.2em] mt-1 sm:mt-2 group-hover/stat:text-[#7E2259] transition-colors">Enrolled</div>
                                     </div>
-                                    <div className="text-center group/stat border-x border-gray-100 px-12 lg:px-24">
-                                        <div className="text-4xl font-black text-[#2D2D2D]">{course.lessons_count || 0}</div>
-                                        <div className="text-[11px] font-black text-[#B0BCC7] uppercase tracking-[0.2em] mt-2 group-hover/stat:text-[#7E2259] transition-colors">Lessons</div>
+                                    <div className="text-center group/stat border-x border-gray-100 px-6 sm:px-12 lg:px-16">
+                                        <div className="text-2xl sm:text-4xl font-black text-[#2D2D2D]">{(course as any).lessons_count || course.total_lessons || 0}</div>
+                                        <div className="text-[9px] sm:text-[11px] font-black text-[#B0BCC7] uppercase tracking-[0.1em] sm:tracking-[0.2em] mt-1 sm:mt-2 group-hover/stat:text-[#7E2259] transition-colors">Lessons</div>
                                     </div>
                                     <div className="text-center group/stat">
-                                        <div className="text-4xl font-black text-[#2D2D2D]">{formatDuration(course.estimated_duration)}</div>
-                                        <div className="text-[11px] font-black text-[#B0BCC7] uppercase tracking-[0.2em] mt-2 group-hover/stat:text-[#7E2259] transition-colors">Duration</div>
+                                        <div className="text-2xl sm:text-4xl font-black text-[#2D2D2D]">{formatDuration((course as any).estimated_duration)}</div>
+                                        <div className="text-[9px] sm:text-[11px] font-black text-[#B0BCC7] uppercase tracking-[0.1em] sm:tracking-[0.2em] mt-1 sm:mt-2 group-hover/stat:text-[#7E2259] transition-colors">Duration</div>
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col items-center md:items-end gap-4 min-w-[160px] w-full md:w-auto">
+                                <div className="flex flex-col items-center lg:items-end gap-4 min-w-[160px] w-full lg:w-auto">
                                     <div className="relative w-full flex justify-end items-center gap-3">
                                         <button className="p-3.5 text-gray-400 hover:text-[#7E2259] bg-white border border-gray-100 rounded-[1rem] transition-all hover:shadow-md">
                                             <Share2 size={20} />

@@ -13,6 +13,7 @@ import {
   Filter,
   ChevronLeft,
   CheckCircle,
+  Users,
 } from 'lucide-react';
 import { coursesApi } from '../../../services/api';
 import type { Course } from '../../../types/api';
@@ -235,6 +236,13 @@ const CourseList: React.FC = () => {
                             title="View"
                           >
                             <Eye size={18} />
+                          </button>
+                          <button
+                            onClick={() => navigate(`/admin/courses/${course.id}/enrollments`)}
+                            className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title="View Enrollments"
+                          >
+                            <Users size={18} />
                           </button>
                           <button
                             onClick={() => navigate(`/admin/courses/${course.id}/edit`)}

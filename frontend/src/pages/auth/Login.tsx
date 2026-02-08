@@ -6,7 +6,6 @@ import {
   Mail,
   Lock,
   ArrowRight,
-  Moon,
   Info,
   ShieldCheck,
   Check
@@ -28,7 +27,7 @@ const Login: React.FC = () => {
 
     try {
       const user = await login({ email, password });
-      if (user.role === 'ADMIN') {
+      if (user.role === 'admin' || user.role === 'instructor') {
         navigate('/admin/dashboard');
       } else {
         navigate('/student/dashboard');
@@ -42,11 +41,6 @@ const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] flex flex-col items-center justify-center p-4 relative font-sans text-slate-800">
-      {/* Theme Toggle */}
-      <button className="absolute top-6 right-6 p-3 bg-white rounded-full shadow-md text-slate-400 hover:text-[#7E2259] hover:bg-slate-50 transition-all duration-300">
-        <Moon size={20} />
-      </button>
-
       {/* Main Content */}
       <div className="w-full max-w-4xl flex flex-col items-center z-10">
 

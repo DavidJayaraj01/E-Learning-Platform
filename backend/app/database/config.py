@@ -14,6 +14,12 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     environment: str = "development"
+    
+    # Stripe Configuration
+    stripe_secret_key: str = "sk_test_51SyMrIRxiOGCaPw9UNLpmCvEgkRLyO67ej9O86FdOiDXJryiOZz9sRbLx4lZyF3YMNJJWINZEsQxSYaF1HPMooRr00dyK7cDID"
+    stripe_publishable_key: str = "pk_test_51SyMrIRxiOGCaPw9gZ1MsDkcEzPKCN7JqvM0BG7TzLv57Ckm6FseUBIxCyeBQJZySywscvI4Go8FOVnyVUMG3dw300agxI2Ppj"
+    stripe_webhook_secret: str = "whsec_YourWebhookSecret"
+    frontend_url: str = "http://localhost:5173"
 
     class Config:
         env_file = ".env"

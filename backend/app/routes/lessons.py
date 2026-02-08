@@ -4,10 +4,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from typing import List
 from app.database.config import get_async_session
-from app.models.models import Lesson, Course, UserLessonProgress, User
+from app.models.models import Lesson, Course, UserLessonProgress, User, LessonVideo
 from app.schemas.lessons import (
     LessonCreate, LessonResponse, LessonUpdate,
-    UserLessonProgressResponse
+    UserLessonProgressResponse, VideoContent
 )
 from app.enums import LessonStatus
 from app.dependencies.auth import require_instructor_or_admin
@@ -236,3 +236,60 @@ async def complete_lesson(
     await db.refresh(progress)
     
     return progress
+
+
+@router.post("/{lesson_id}/video")
+async def set_lesson_video(
+    lesson_id: int,
+    video_url: str,
+    db: AsyncSession = Depends(get_async_session)
+):
+    """Set or update the video URL for a lesson"""
+    # Check if lesson exists
+    lesson_result = await db.execute(select(Lesson).where(Lesson.id == lesson_id))
+    lesson = lesson_result.scalars().first()
+    
+    if not lesson:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lesson not found"
+        )
+    
+    # Check if video record exists
+    video_result = await db.execute(
+        select(LessonVideo).where(LessonVideo.lesson_id == lesson_id)
+    )
+    video = video_result.scalars().first()
+    
+    if video:
+        # Update existing video
+        video.url = video_url
+    else:
+        # Create new video record
+        video = LessonVideo(
+            lesson_id=lesson_id,
+            url=video_url
+        )
+        db.add(video)
+    
+    await db.commit()
+    
+    return {"message": "Video URL updated successfully", "url": video_url}
+
+
+@router.delete("/{lesson_id}/video")
+async def delete_lesson_video(
+    lesson_id: int,
+    db: AsyncSession = Depends(get_async_session)
+):
+    """Delete the video URL for a lesson"""
+    video_result = await db.execute(
+        select(LessonVideo).where(LessonVideo.lesson_id == lesson_id)
+    )
+    video = video_result.scalars().first()
+    
+    if video:
+        await db.delete(video)
+        await db.commit()
+    
+    return {"message": "Video deleted successfully"}

@@ -3,25 +3,45 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { coursesApi } from '../../services/api';
 import type { Course } from '../../types/api';
+import MyInvitations from '../../components/student/MyInvitations';
 import {
   Search,
-  Moon,
   GraduationCap,
   Info,
   Star,
   LogOut,
-  Loader2
+  Loader2,
+  User
 } from 'lucide-react';
 
-// Mock Data for Badges matching the UI
-const BADGES = [
-  { name: "Newbie", points: 20, active: true },
-  { name: "Explorer", points: 40, active: false },
-  { name: "Achiever", points: 60, active: false },
-  { name: "Specialist", points: 80, active: false },
-  { name: "Expert", points: 100, active: false },
-  { name: "Master", points: 120, active: false },
+// Badge definitions
+const BADGE_DEFINITIONS = [
+  { name: "Newbie", points: 20 },
+  { name: "Explorer", points: 40 },
+  { name: "Achiever", points: 60 },
+  { name: "Specialist", points: 80 },
+  { name: "Expert", points: 100 },
+  { name: "Master", points: 120 },
 ];
+
+// Function to get current badge based on points
+const getCurrentBadge = (points: number) => {
+  let currentBadge = BADGE_DEFINITIONS[0];
+  for (const badge of BADGE_DEFINITIONS) {
+    if (points >= badge.points) {
+      currentBadge = badge;
+    }
+  }
+  return currentBadge;
+};
+
+// Function to get badges with active state based on user points
+const getBadgesWithActiveState = (userPoints: number) => {
+  return BADGE_DEFINITIONS.map(badge => ({
+    ...badge,
+    active: userPoints >= badge.points
+  }));
+};
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -77,6 +97,10 @@ const Dashboard: React.FC = () => {
   const maxPoints = 120;
   const progressPercentage = Math.min((currentPoints / maxPoints) * 100, 100);
 
+  // Badge calculation
+  const currentBadge = getCurrentBadge(currentPoints);
+  const badges = getBadgesWithActiveState(currentPoints);
+
   // Circle circumference: 2 * pi * r. r=88 => ~552.9
   const circleCircumference = 552.9;
   const strokeDashoffset = circleCircumference - (circleCircumference * (progressPercentage / 100));
@@ -98,11 +122,15 @@ const Dashboard: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-6">
-            <button className="text-slate-400 hover:text-[#7E2259] transition-colors p-2 rounded-full hover:bg-slate-50">
-              <Moon size={20} />
+            {/* Profile Button */}
+            <button
+              onClick={() => navigate('/profile')}
+              className="text-slate-400 hover:text-[#7E2259] transition-colors p-2 rounded-full hover:bg-slate-50"
+              title="My Profile"
+            >
+              <User size={20} />
             </button>
-
-            {/* User Profile Section */}
+            {/* Logout Button */}
             <button
               onClick={logout}
               className="text-slate-400 hover:text-[#7E2259] transition-colors p-2 rounded-full hover:bg-slate-50"
@@ -110,7 +138,9 @@ const Dashboard: React.FC = () => {
             >
               <LogOut size={20} />
             </button>
-            <div className="flex items-center gap-3 border-l border-slate-200 pl-6">
+            <div 
+              onClick={() => navigate('/profile')}
+              className="flex items-center gap-3 border-l border-slate-200 pl-6 cursor-pointer hover:opacity-80 transition-opacity">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-bold text-slate-900 leading-tight">{displayName}</p>
                 <p className="text-xs text-slate-500">Student ID: #{displayId}</p>
@@ -156,6 +186,12 @@ const Dashboard: React.FC = () => {
 
           {/* Left Column: Courses Grid */}
           <div className="lg:col-span-8">
+            {/* Pending Invitations */}
+            <MyInvitations onAccepted={() => {
+              // Refresh courses when invitation is accepted
+              coursesApi.getMyCourses().then(setCourses).catch(console.error);
+            }} />
+
             {isLoading ? (
               <div className="flex items-center justify-center py-20">
                 <Loader2 className="w-8 h-8 text-[#7E2259] animate-spin" />
@@ -246,10 +282,11 @@ const Dashboard: React.FC = () => {
                       cx="96"
                       cy="96"
                       r="88"
-                      stroke="#F1F5F9"
+                      stroke="currentColor"
+                      className="text-slate-200"
                       strokeWidth="12"
                       fill="transparent"
-                      strokeLinecap="round" // Smooth ends
+                      strokeLinecap="round"
                     />
                     {/* Progress Circle */}
                     <circle
@@ -275,7 +312,7 @@ const Dashboard: React.FC = () => {
                 </div>
 
                 <div className="mt-[-20px] bg-[#FDF2F8] text-[#7E2259] px-6 py-1.5 rounded-full text-sm font-bold shadow-sm z-10 border border-[#FBCFE8]">
-                  Newbie
+                  {currentBadge.name}
                 </div>
               </div>
 
@@ -287,7 +324,7 @@ const Dashboard: React.FC = () => {
                 </div>
 
                 <div className="space-y-3">
-                  {BADGES.map((badge, idx) => (
+                  {badges.map((badge, idx) => (
                     <div
                       key={badge.name}
                       style={{ animationDelay: `${idx * 100}ms` }}

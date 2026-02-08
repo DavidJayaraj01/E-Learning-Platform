@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
     Image as ImageIcon,
     MoreVertical,
@@ -21,16 +21,20 @@ import {
     Circle,
     CheckCircle2,
     DollarSign,
-    Shield
+    Shield,
+    Menu
 } from 'lucide-react';
+import InvitationManager from '../../components/admin/InvitationManager';
 
 const CourseEditor: React.FC = () => {
     const navigate = useNavigate();
+    const { courseId } = useParams<{ courseId: string }>();
     const [activeTab, setActiveTab] = useState('Options');
     const [title, setTitle] = useState('Basics of Odoo CRM');
     const [tags] = useState(['ERP', 'CRM']);
     const [description, setDescription] = useState('This course covers the functional configuration of Odoo CRM, including lead management, opportunity workflows, pipeline stages, and activity scheduling. It also explains CRM reporting, automation rules, and integration with Sales for end-to-end process handling.');
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     // Options Tab State
     const [accessShowTo, setAccessShowTo] = useState('Signed In');
@@ -47,22 +51,22 @@ const CourseEditor: React.FC = () => {
     return (
         <div className="min-h-screen bg-[#FDFDFF] font-sans flex flex-col">
             {/* Header */}
-            <header className="bg-white px-8 py-3 flex items-center justify-between border-b border-gray-100 sticky top-0 z-50">
-                <div className="flex items-center gap-12">
-                    <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/admin/dashboard')}>
-                        <div className="bg-[#7E2259] p-2 rounded-xl flex items-center justify-center">
-                            <GraduationCap className="text-white" size={24} />
+            <header className="bg-white px-4 sm:px-8 py-3 flex items-center justify-between border-b border-gray-100 sticky top-0 z-50">
+                <div className="flex items-center gap-4 lg:gap-12">
+                    <div className="flex items-center gap-2 sm:gap-3 cursor-pointer" onClick={() => navigate('/admin/dashboard')}>
+                        <div className="bg-[#7E2259] p-1.5 sm:p-2 rounded-lg sm:rounded-xl flex items-center justify-center">
+                            <GraduationCap className="text-white" size={20} />
                         </div>
-                        <span className="text-xl font-black text-[#2D2D2D] tracking-tight">
+                        <span className="text-lg sm:text-xl font-black text-[#2D2D2D] tracking-tight">
                             Edu<span className="text-slate-800">Platform</span>
                         </span>
                     </div>
 
-                    <nav className="flex items-center gap-6">
+                    <nav className="hidden md:flex items-center gap-4 lg:gap-6">
                         {['Courses', 'Reporting', 'Settings'].map((tab) => (
                             <button
                                 key={tab}
-                                className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${tab === 'Courses' ? 'bg-[#FDF2F8] text-[#7E2259]' : 'text-slate-500 hover:text-slate-700'
+                                className={`px-4 lg:px-5 py-2 rounded-lg text-sm font-bold transition-all ${tab === 'Courses' ? 'bg-[#FDF2F8] text-[#7E2259]' : 'text-slate-500 hover:text-slate-700'
                                     }`}
                             >
                                 {tab}
@@ -71,53 +75,79 @@ const CourseEditor: React.FC = () => {
                     </nav>
                 </div>
 
-                <div className="flex items-center gap-6">
-                    <button className="text-slate-400 hover:text-slate-600 transition-colors">
+                <div className="flex items-center gap-4 sm:gap-6">
+                    <button className="hidden sm:block text-slate-400 hover:text-slate-600 transition-colors">
                         <Moon size={20} />
                     </button>
-                    <div className="w-10 h-10 rounded-full bg-[#E8EDF3] border-2 border-white shadow-sm overflow-hidden cursor-pointer">
+                    <div className="hidden sm:block w-10 h-10 rounded-full bg-[#E8EDF3] border-2 border-white shadow-sm overflow-hidden cursor-pointer">
                         <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Mitchell" alt="Profile" />
                     </div>
+                    <button
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        className="md:hidden p-2 text-gray-600"
+                    >
+                        {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                    </button>
                 </div>
             </header>
 
+            {/* Mobile Menu */}
+            {isMobileMenuOpen && (
+                <div className="md:hidden bg-white border-b border-gray-100 shadow-lg">
+                    <nav className="p-4 space-y-2">
+                        {['Courses', 'Reporting', 'Settings'].map((tab) => (
+                            <button
+                                key={tab}
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className={`block w-full text-left px-4 py-3 rounded-lg text-sm font-bold transition-all ${tab === 'Courses' ? 'bg-[#FDF2F8] text-[#7E2259]' : 'text-slate-500 hover:text-slate-700'
+                                    }`}
+                            >
+                                {tab}
+                            </button>
+                        ))}
+                    </nav>
+                </div>
+            )}
+
             {/* Breadcrumb Action Bar */}
-            <div className="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between">
+            <div className="bg-white border-b border-gray-100 px-4 sm:px-8 py-3 sm:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
-                    <button className="bg-[#7E2259] text-white px-6 py-2.5 rounded-lg text-sm font-black flex items-center gap-2 shadow-lg shadow-[#7E2259]/20 hover:bg-[#6D1F4D] transition-all">
+                    <button className="bg-[#7E2259] text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg text-sm font-black flex items-center gap-2 shadow-lg shadow-[#7E2259]/20 hover:bg-[#6D1F4D] transition-all">
                         <Plus size={18} strokeWidth={3} />
-                        New Course
+                        <span className="hidden sm:inline">New Course</span>
+                        <span className="sm:hidden">New</span>
                     </button>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <button className="bg-white border border-[#B8D7FF] text-[#0066FF] px-6 py-2.5 rounded-lg text-sm font-black hover:bg-blue-50 transition-all flex items-center gap-2">
-                        <Shield size={16} />
-                        Contact Attendees
+                <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto overflow-x-auto">
+                    <button className="bg-white border border-[#B8D7FF] text-[#0066FF] px-3 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-black hover:bg-blue-50 transition-all flex items-center gap-1 sm:gap-2 whitespace-nowrap">
+                        <Shield size={14} className="sm:w-4 sm:h-4" />
+                        <span className="hidden sm:inline">Contact Attendees</span>
+                        <span className="sm:hidden">Contact</span>
                     </button>
-                    <button className="bg-white border border-[#B8D7FF] text-[#0066FF] px-6 py-2.5 rounded-lg text-sm font-black hover:bg-blue-50 transition-all flex items-center gap-2">
-                        <User size={16} />
+                    <button className="bg-white border border-[#B8D7FF] text-[#0066FF] px-3 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-black hover:bg-blue-50 transition-all flex items-center gap-1 sm:gap-2 whitespace-nowrap">
+                        <User size={14} className="sm:w-4 sm:h-4" />
                         Add Attendees
                     </button>
                 </div>
             </div>
 
-            <main className="max-w-[1400px] w-full mx-auto px-8 py-10 flex-1">
-                <div className="bg-white rounded-[2rem] border border-gray-100 shadow-[0_8px_50px_rgba(0,0,0,0.02)] overflow-hidden">
-                    <div className="p-12 space-y-12">
+            <main className="max-w-[1400px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 flex-1">
+                <div className="bg-white rounded-2xl lg:rounded-[2rem] border border-gray-100 shadow-[0_8px_50px_rgba(0,0,0,0.02)] overflow-hidden">
+                    <div className="p-4 sm:p-8 lg:p-12 space-y-8 lg:space-y-12">
                         {/* Course Info Section */}
-                        <div className="flex justify-between items-start gap-16">
-                            <div className="flex-1 space-y-10">
-                                <div className="space-y-4">
+                        <div className="flex flex-col lg:flex-row justify-between items-start gap-6 lg:gap-16">
+                            <div className="flex-1 w-full space-y-6 lg:space-y-10 order-2 lg:order-1">
+                                <div className="space-y-3 sm:space-y-4">
                                     <label className="text-[11px] font-black text-slate-300 uppercase tracking-[0.2em]">Course Title</label>
                                     <input
                                         type="text"
                                         value={title}
                                         onChange={(e) => setTitle(e.target.value)}
-                                        className="w-full bg-transparent text-3xl font-black text-slate-800 border-b-2 border-slate-50 focus:border-[#7E2259]/20 outline-none transition-all pb-4"
+                                        className="w-full bg-transparent text-xl sm:text-2xl lg:text-3xl font-black text-slate-800 border-b-2 border-slate-50 focus:border-[#7E2259]/20 outline-none transition-all pb-3 sm:pb-4"
                                     />
                                 </div>
-                                <div className="space-y-4">
+                                <div className="space-y-3 sm:space-y-4">
                                     <label className="text-[11px] font-black text-slate-300 uppercase tracking-[0.2em]">Tags</label>
                                     <div className="flex items-center gap-3 flex-wrap">
                                         {tags.map((tag, i) => (
@@ -135,10 +165,10 @@ const CourseEditor: React.FC = () => {
                             </div>
 
                             {/* Course Image Wrapper */}
-                            <div className="flex flex-col items-center gap-4 group">
-                                <div className="w-80 aspect-[1.4/1] bg-[#8FB3B0] rounded-2xl relative shadow-2xl shadow-[#8FB3B0]/30 overflow-hidden flex items-center justify-center">
-                                    <div className="w-32 h-32 bg-white rounded-full flex flex-col items-center justify-center text-center p-4">
-                                        <GraduationCap className="text-[#8FB3B0]" size={40} />
+                            <div className="flex flex-col items-center gap-4 group order-1 lg:order-2 w-full lg:w-auto">
+                                <div className="w-full max-w-[280px] sm:max-w-[320px] aspect-[1.4/1] bg-[#8FB3B0] rounded-2xl relative shadow-2xl shadow-[#8FB3B0]/30 overflow-hidden flex items-center justify-center mx-auto">
+                                    <div className="w-24 sm:w-32 h-24 sm:h-32 bg-white rounded-full flex flex-col items-center justify-center text-center p-4">
+                                        <GraduationCap className="text-[#8FB3B0]" size={32} />
                                         <p className="text-[8px] font-black text-[#8FB3B0] uppercase mt-2">Course Image</p>
                                     </div>
                                 </div>
@@ -147,13 +177,13 @@ const CourseEditor: React.FC = () => {
                         </div>
 
                         {/* Tabs Grid */}
-                        <div className="flex border-b border-gray-50">
+                        <div className="flex overflow-x-auto border-b border-gray-50 -mx-4 sm:mx-0 px-4 sm:px-0 scrollbar-hide">
                             {['Content', 'Description', 'Options', 'Quiz'].map((tab) => (
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}
-                                    className={`px-12 py-5 text-sm font-black transition-all relative ${activeTab === tab
-                                        ? 'bg-[#7E2259] text-white rounded-t-2xl shadow-[0_-10px_30px_rgba(126,34,89,0.1)]'
+                                    className={`px-6 sm:px-8 lg:px-12 py-3 sm:py-4 lg:py-5 text-xs sm:text-sm font-black transition-all relative whitespace-nowrap ${activeTab === tab
+                                        ? 'bg-[#7E2259] text-white rounded-t-xl sm:rounded-t-2xl shadow-[0_-10px_30px_rgba(126,34,89,0.1)]'
                                         : 'text-slate-400 hover:text-slate-600'
                                         }`}
                                 >
@@ -163,11 +193,11 @@ const CourseEditor: React.FC = () => {
                         </div>
 
                         {/* Tab Contents */}
-                        <div className="pt-2 min-h-[500px]">
+                        <div className="pt-2 min-h-[400px] sm:min-h-[500px]">
                             {activeTab === 'Options' && (
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                     {/* Access Card */}
-                                    <div className="bg-white rounded-3xl border border-slate-100 p-10 space-y-10 shadow-sm">
+                                    <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-100 p-5 sm:p-8 lg:p-10 space-y-6 sm:space-y-10 shadow-sm">
                                         <div className="flex items-center gap-4">
                                             <div className="bg-[#FDF2F8] p-3 rounded-xl">
                                                 <Lock className="text-[#7E2259]" size={20} />
@@ -220,6 +250,12 @@ const CourseEditor: React.FC = () => {
                                                         </label>
                                                     ))}
                                                 </div>
+
+                                                {accessRule === 'On Invitation' && courseId && (
+                                                    <div className="ml-9 mt-4">
+                                                        <InvitationManager courseId={parseInt(courseId)} />
+                                                    </div>
+                                                )}
 
                                                 {accessRule === 'On Payment' && (
                                                     <div className="ml-9 space-y-4 animate-in slide-in-from-left-4 duration-300">

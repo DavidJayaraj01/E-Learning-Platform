@@ -36,6 +36,7 @@ from app.routes import (
     reviews,
     rag_generation,
     ai_content,
+    invitations,
 )
 
 
@@ -314,6 +315,12 @@ app.include_router(
     ai_content.router,
     prefix=f"{API_V1_PREFIX}/ai",
     tags=["🧠 AI Content"],
+)
+
+app.include_router(
+    invitations.router,
+    prefix=f"{API_V1_PREFIX}/invitations",
+    tags=["✉️ Invitations"],
 )
 
 
