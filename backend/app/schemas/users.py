@@ -23,13 +23,17 @@ class UserUpdate(BaseModel):
     """User update schema"""
     email: Optional[EmailStr] = None
     name: Optional[str] = None
+    full_name: Optional[str] = None
     role: Optional[UserRole] = None
 
 
 class UserResponse(UserBase):
     """User response schema"""
     id: int
+    full_name: Optional[str] = None
     total_points: int
+    enrolled_courses: int = 0
+    completed_courses: int = 0
     created_at: datetime
     
     class Config:

@@ -16,10 +16,13 @@ import {
   Plus,
   X,
   Loader2,
+  Mail,
+  Info,
 } from 'lucide-react';
 import { coursesApi } from '../../../services/api';
 import type { CourseCreate } from '../../../types/api';
 import { toast } from 'sonner';
+import InvitationManager from '../../../components/admin/InvitationManager';
 
 const CourseForm: React.FC = () => {
   const { courseId } = useParams();
@@ -381,6 +384,29 @@ const CourseForm: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Invitation Manager (shown only for invitation access) */}
+            {formData.access_type === 'INVITATION' && (
+              <div className="mt-6 pt-6 border-t border-slate-200">
+                <div className="flex items-center gap-2 mb-4">
+                  <Mail size={18} className="text-[#7E2259]" />
+                  <h3 className="text-sm font-bold text-slate-700">Send Invitations</h3>
+                </div>
+                {isEditing && courseId ? (
+                  <InvitationManager courseId={parseInt(courseId)} />
+                ) : (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+                    <Info size={18} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-amber-800">Create the course first</p>
+                      <p className="text-xs text-amber-600 mt-1">
+                        Save this course to send invitations. After creating the course, you can invite learners from the course edit page.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Price (shown only for paid access) */}
             {formData.access_type === 'PAYMENT' && (

@@ -328,6 +328,30 @@ async def enroll_in_course(
             detail="Course not found"
         )
     
+    # Check access type restrictions
+    if course.access_type == "INVITATION":
+        # Check if user has an accepted invitation
+        from app.models.models import CourseInvitation
+        invitation_result = await db.execute(
+            select(CourseInvitation)
+            .where(CourseInvitation.course_id == course_id)
+            .where(CourseInvitation.invitee_email == current_user.email)
+            .where(CourseInvitation.status == "accepted")
+        )
+        if not invitation_result.scalars().first():
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This course requires an invitation. Please request access from the course administrator."
+            )
+    
+    if course.access_type == "PAYMENT":
+        # For now, just block payment-based courses
+        # In production, you would integrate with a payment provider
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="This course requires payment. Please complete the payment process first."
+        )
+    
     # Check if already enrolled
     enrollment_result = await db.execute(
         select(CourseEnrollment)

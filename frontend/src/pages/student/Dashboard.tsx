@@ -3,13 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { coursesApi } from '../../services/api';
 import type { Course } from '../../types/api';
+import MyInvitations from '../../components/student/MyInvitations';
 import {
   Search,
   GraduationCap,
   Info,
   Star,
   LogOut,
-  Loader2
+  Loader2,
+  User
 } from 'lucide-react';
 
 // Badge definitions
@@ -120,7 +122,15 @@ const Dashboard: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-6">
-            {/* User Profile Section */}
+            {/* Profile Button */}
+            <button
+              onClick={() => navigate('/profile')}
+              className="text-slate-400 hover:text-[#7E2259] transition-colors p-2 rounded-full hover:bg-slate-50"
+              title="My Profile"
+            >
+              <User size={20} />
+            </button>
+            {/* Logout Button */}
             <button
               onClick={logout}
               className="text-slate-400 hover:text-[#7E2259] transition-colors p-2 rounded-full hover:bg-slate-50"
@@ -128,7 +138,9 @@ const Dashboard: React.FC = () => {
             >
               <LogOut size={20} />
             </button>
-            <div className="flex items-center gap-3 border-l border-slate-200 pl-6">
+            <div 
+              onClick={() => navigate('/profile')}
+              className="flex items-center gap-3 border-l border-slate-200 pl-6 cursor-pointer hover:opacity-80 transition-opacity">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-bold text-slate-900 leading-tight">{displayName}</p>
                 <p className="text-xs text-slate-500">Student ID: #{displayId}</p>
@@ -174,6 +186,12 @@ const Dashboard: React.FC = () => {
 
           {/* Left Column: Courses Grid */}
           <div className="lg:col-span-8">
+            {/* Pending Invitations */}
+            <MyInvitations onAccepted={() => {
+              // Refresh courses when invitation is accepted
+              coursesApi.getMyCourses().then(setCourses).catch(console.error);
+            }} />
+
             {isLoading ? (
               <div className="flex items-center justify-center py-20">
                 <Loader2 className="w-8 h-8 text-[#7E2259] animate-spin" />

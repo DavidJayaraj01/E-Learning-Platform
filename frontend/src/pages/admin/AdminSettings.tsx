@@ -12,14 +12,25 @@ import {
     Trash2,
     ChevronLeft,
     ChevronRight,
-    LayoutDashboard
+    LayoutDashboard,
+    UserCheck,
+    ThumbsUp,
+    ThumbsDown,
+    BookOpen,
+    Clock,
+    Loader2
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { invitationsApi, type CourseInvitation } from '../../services/api';
+import { toast } from 'sonner';
+import { useEffect } from 'react';
 
 const AdminSettings: React.FC = () => {
     const navigate = useNavigate();
     const { } = useAuth();
     const [activeTab, setActiveTab] = useState('Users & Roles');
+    const [courseRequests, setCourseRequests] = useState<CourseInvitation[]>([]);
+    const [loadingRequests, setLoadingRequests] = useState(false);
 
     const users = [
         { id: 1, name: 'Mitchell Admin', email: 'admin@example.com', role: 'Admin', status: 'Active', initials: 'MA' },
@@ -34,6 +45,7 @@ const AdminSettings: React.FC = () => {
                 { id: 'General', icon: Settings, label: 'General' },
                 { id: 'Appearance', icon: Palette, label: 'Appearance' },
                 { id: 'Users & Roles', icon: Users, label: 'Users & Roles' },
+                { id: 'Course Requests', icon: UserCheck, label: 'Course Requests' },
             ]
         },
         {
@@ -43,6 +55,44 @@ const AdminSettings: React.FC = () => {
             ]
         }
     ];
+
+    useEffect(() => {
+        if (activeTab === 'Course Requests') {
+            loadCourseRequests();
+        }
+    }, [activeTab]);
+
+    const loadCourseRequests = async () => {
+        try {
+            setLoadingRequests(true);
+            const response = await invitationsApi.getAllCourseRequests('requested');
+            setCourseRequests(response.invitations);
+        } catch (error: any) {
+            toast.error(error.message || 'Failed to load course requests');
+        } finally {
+            setLoadingRequests(false);
+        }
+    };
+
+    const handleApproveRequest = async (invitationId: number) => {
+        try {
+            await invitationsApi.approveRequest(invitationId);
+            toast.success('Request approved! Invitation sent to learner.');
+            await loadCourseRequests();
+        } catch (error: any) {
+            toast.error(error.message || 'Failed to approve request');
+        }
+    };
+
+    const handleRejectRequest = async (invitationId: number) => {
+        try {
+            await invitationsApi.rejectRequest(invitationId);
+            toast.success('Request rejected.');
+            await loadCourseRequests();
+        } catch (error: any) {
+            toast.error(error.message || 'Failed to reject request');
+        }
+    };
 
     return (
         <div className="min-h-screen bg-[#FDFDFF] flex flex-col font-sans">
@@ -279,6 +329,95 @@ const AdminSettings: React.FC = () => {
                                         </div>
                                     ))}
                                 </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'Course Requests' && (
+                            <div className="space-y-8">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <h2 className="text-3xl font-bold text-slate-800 tracking-tight">Course Requests</h2>
+                                        <p className="text-sm text-slate-400">Review and manage learner requests for invitation-only courses.</p>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-blue-50 px-4 py-2 rounded-xl">
+                                            <div className="flex items-center gap-2">
+                                                <Clock size={16} className="text-blue-600" />
+                                                <span className="text-sm font-bold text-blue-600">{courseRequests.length} Pending</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {loadingRequests ? (
+                                    <div className="bg-white rounded-[2rem] border border-gray-100 p-20 flex items-center justify-center">
+                                        <div className="flex items-center gap-3 text-slate-400">
+                                            <Loader2 className="animate-spin" size={24} />
+                                            <span className="text-sm font-medium">Loading requests...</span>
+                                        </div>
+                                    </div>
+                                ) : courseRequests.length === 0 ? (
+                                    <div className="bg-white rounded-[2rem] border border-gray-100 p-20 text-center">
+                                        <div className="text-slate-300 mb-4">
+                                            <UserCheck size={48} className="mx-auto" />
+                                        </div>
+                                        <h3 className="text-lg font-bold text-slate-600 mb-2">No Pending Requests</h3>
+                                        <p className="text-sm text-slate-400">Learner requests for course invitations will appear here.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {courseRequests.map((request) => (
+                                            <div
+                                                key={request.id}
+                                                className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-md transition-all group"
+                                            >
+                                                <div className="flex items-start justify-between">
+                                                    <div className="flex items-start gap-4 flex-1">
+                                                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white flex-shrink-0">
+                                                            <BookOpen size={20} />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2 mb-1">
+                                                                <h4 className="text-base font-bold text-slate-800">{request.course_title}</h4>
+                                                                <span className="px-2 py-0.5 bg-blue-100 text-blue-600 rounded-md text-[10px] font-black uppercase tracking-wider">Requested</span>
+                                                            </div>
+                                                            <p className="text-sm text-slate-500 mb-2">
+                                                                <span className="font-medium text-slate-700">{request.invitee_email}</span> requested access
+                                                            </p>
+                                                            {request.message && (
+                                                                <div className="bg-slate-50 rounded-lg p-3 mt-3 border border-slate-100">
+                                                                    <p className="text-xs text-slate-600 italic">"{request.message}"</p>
+                                                                </div>
+                                                            )}
+                                                            <div className="flex items-center gap-4 mt-3 text-xs text-slate-400">
+                                                                <span className="flex items-center gap-1">
+                                                                    <Clock size={12} />
+                                                                    {new Date(request.created_at).toLocaleDateString()} at {new Date(request.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 ml-4">
+                                                        <button
+                                                            onClick={() => handleApproveRequest(request.id)}
+                                                            className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-600 rounded-xl font-bold text-sm hover:bg-green-100 transition-all"
+                                                        >
+                                                            <ThumbsUp size={16} />
+                                                            Approve
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleRejectRequest(request.id)}
+                                                            className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl font-bold text-sm hover:bg-red-100 transition-all"
+                                                        >
+                                                            <ThumbsDown size={16} />
+                                                            Reject
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         )}
 

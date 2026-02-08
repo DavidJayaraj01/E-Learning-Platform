@@ -91,6 +91,7 @@ class Course(Base):
     quizzes = relationship("Quiz", back_populates="course")
     reviews = relationship("CourseReview", back_populates="course")
     views = relationship("CourseView", back_populates="course")
+    invitations = relationship("CourseInvitation", back_populates="course")
 
 
 class CourseEnrollment(Base):
@@ -322,3 +323,26 @@ class CourseView(Base):
 
     # Relationships
     course = relationship("Course", back_populates="views")
+
+
+class CourseInvitation(Base):
+    """Course invitation model for invitation-only courses"""
+    __tablename__ = "course_invitations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    inviter_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    invitee_email = Column(String(255), nullable=False)
+    invitee_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)  # Resolved when user exists
+    status = Column(String(20), default="pending")  # pending, accepted, declined, expired
+    message = Column(TEXT, nullable=True)
+    created_at = Column(TIMESTAMP, server_default=func.current_timestamp())
+    responded_at = Column(TIMESTAMP, nullable=True)
+
+    # Unique constraint - one pending invitation per email per course
+    __table_args__ = (UniqueConstraint('course_id', 'invitee_email', name='unique_course_invitation'),)
+
+    # Relationships
+    course = relationship("Course", back_populates="invitations")
+    inviter = relationship("User", foreign_keys=[inviter_id])
+    invitee = relationship("User", foreign_keys=[invitee_id])

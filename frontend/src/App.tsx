@@ -46,6 +46,9 @@ import UserForm from './pages/admin/users/UserForm';
 // Profile
 import Profile from './pages/Profile';
 
+// Student - Invitations
+import InvitationsPage from './pages/student/InvitationsPage';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -311,6 +314,13 @@ function App() {
               <Route path="/student/courses" element={
                 <ProtectedRoute allowedRole="LEARNER">
                   <BrowseCourses />
+                </ProtectedRoute>
+              } />
+
+              {/* Student - Invitations */}
+              <Route path="/student/invitations" element={
+                <ProtectedRoute allowedRole="LEARNER">
+                  <InvitationsPage />
                 </ProtectedRoute>
               } />
               

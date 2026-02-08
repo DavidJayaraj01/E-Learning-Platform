@@ -13,15 +13,24 @@ import {
   Eye,
   EyeOff,
   CheckCircle,
+  Clock,
+  XCircle,
+  Send,
+  Inbox,
 } from 'lucide-react';
-import { usersApi } from '../services/api';
+import { usersApi, invitationsApi } from '../services/api';
+import type { CourseInvitation } from '../services/api';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 const Profile: React.FC = () => {
   const { user, updateUser } = useAuth();
+  const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'invitations'>('profile');
+  const [invitations, setInvitations] = useState<CourseInvitation[]>([]);
+  const [loadingInvitations, setLoadingInvitations] = useState(false);
 
   const [profileData, setProfileData] = useState({
     full_name: '',
@@ -37,11 +46,49 @@ const Profile: React.FC = () => {
   useEffect(() => {
     if (user) {
       setProfileData({
-        full_name: user.full_name || '',
-        bio: '', // Add bio if your User type has it
+        full_name: user.full_name || user.name || '',
+        bio: '',
       });
     }
   }, [user]);
+
+  useEffect(() => {
+    if (activeTab === 'invitations' && user) {
+      loadInvitations();
+    }
+  }, [activeTab, user]);
+
+  const loadInvitations = async () => {
+    try {
+      setLoadingInvitations(true);
+      const response = await invitationsApi.getMyInvitations();
+      setInvitations(response.invitations);
+    } catch (err) {
+      console.error('Failed to load invitations:', err);
+    } finally {
+      setLoadingInvitations(false);
+    }
+  };
+
+  const handleAcceptInvitation = async (invitationId: number) => {
+    try {
+      await invitationsApi.acceptInvitation(invitationId);
+      toast.success('Invitation accepted! You are now enrolled.');
+      await loadInvitations();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to accept invitation');
+    }
+  };
+
+  const handleDeclineInvitation = async (invitationId: number) => {
+    try {
+      await invitationsApi.declineInvitation(invitationId);
+      toast.success('Invitation declined.');
+      await loadInvitations();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to decline invitation');
+    }
+  };
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,7 +194,7 @@ const Profile: React.FC = () => {
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats (for students) */}
-        {user.role === 'student' && (
+        {(user.role === 'student' || user.role === 'learner' || user.role === 'LEARNER') && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
             <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
               <div className="flex items-center gap-3">
@@ -190,10 +237,10 @@ const Profile: React.FC = () => {
         {/* Tabs */}
         <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="border-b border-slate-100">
-            <div className="flex">
+            <div className="flex flex-wrap">
               <button
                 onClick={() => setActiveTab('profile')}
-                className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors ${
+                className={`px-4 sm:px-6 py-3 sm:py-4 font-medium text-sm border-b-2 transition-colors ${
                   activeTab === 'profile'
                     ? 'border-[#7E2259] text-[#7E2259]'
                     : 'border-transparent text-slate-500 hover:text-slate-700'
@@ -203,7 +250,7 @@ const Profile: React.FC = () => {
               </button>
               <button
                 onClick={() => setActiveTab('security')}
-                className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors ${
+                className={`px-4 sm:px-6 py-3 sm:py-4 font-medium text-sm border-b-2 transition-colors ${
                   activeTab === 'security'
                     ? 'border-[#7E2259] text-[#7E2259]'
                     : 'border-transparent text-slate-500 hover:text-slate-700'
@@ -211,6 +258,20 @@ const Profile: React.FC = () => {
               >
                 Security
               </button>
+              {/* Show Invitations tab for learners */}
+              {(user.role === 'learner' || user.role === 'LEARNER') && (
+                <button
+                  onClick={() => setActiveTab('invitations')}
+                  className={`px-4 sm:px-6 py-3 sm:py-4 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${
+                    activeTab === 'invitations'
+                      ? 'border-[#7E2259] text-[#7E2259]'
+                      : 'border-transparent text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  <Inbox size={16} />
+                  Invitations
+                </button>
+              )}
             </div>
           </div>
 
@@ -371,6 +432,173 @@ const Profile: React.FC = () => {
                 </button>
               </div>
             </form>
+          )}
+
+          {/* Invitations Tab */}
+          {activeTab === 'invitations' && (
+            <div className="p-6">
+              <div className="mb-6">
+                <h3 className="font-bold text-slate-900 mb-1">Course Invitations</h3>
+                <p className="text-sm text-slate-500">
+                  Manage invitations you've received for courses
+                </p>
+              </div>
+
+              {loadingInvitations ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 size={24} className="animate-spin text-[#7E2259]" />
+                </div>
+              ) : invitations.length === 0 ? (
+                <div className="text-center py-12">
+                  <Inbox size={48} className="mx-auto text-slate-300 mb-4" />
+                  <p className="text-slate-500">No invitations yet</p>
+                  <p className="text-sm text-slate-400 mt-1">
+                    When instructors invite you to courses, they'll appear here
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Requested (waiting for admin approval) */}
+                  {invitations.filter(inv => inv.status === 'requested').length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-600 mb-3 flex items-center gap-2">
+                        <Clock size={16} className="text-blue-500" />
+                        Awaiting Approval
+                      </h4>
+                      <div className="space-y-3">
+                        {invitations.filter(inv => inv.status === 'requested').map((invitation) => (
+                          <div
+                            key={invitation.id}
+                            className="bg-blue-50 border border-blue-100 rounded-xl p-4"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <h5 className="font-bold text-slate-800">{invitation.course_title}</h5>
+                                <p className="text-xs text-slate-500 mt-1">
+                                  Requested on {new Date(invitation.created_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <span className="px-3 py-1 bg-blue-100 text-blue-600 rounded-lg text-xs font-bold">
+                                Awaiting Approval
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Pending Invitations */}
+                  {invitations.filter(inv => inv.status === 'pending').length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-600 mb-3 flex items-center gap-2">
+                        <Clock size={16} className="text-amber-500" />
+                        Pending Invitations
+                      </h4>
+                      <div className="space-y-3">
+                        {invitations.filter(inv => inv.status === 'pending').map((invitation) => (
+                          <div
+                            key={invitation.id}
+                            className="bg-amber-50 border border-amber-200 rounded-xl p-4"
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              <div className="flex-1">
+                                <h5 className="font-semibold text-slate-900">
+                                  {invitation.course_title || `Course #${invitation.course_id}`}
+                                </h5>
+                                <p className="text-sm text-slate-500 mt-1">
+                                  Invited by {invitation.inviter_name || 'Instructor'}
+                                </p>
+                                <p className="text-xs text-slate-400 mt-1">
+                                  {new Date(invitation.created_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleAcceptInvitation(invitation.id)}
+                                  className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors text-sm"
+                                >
+                                  <CheckCircle size={16} />
+                                  Accept
+                                </button>
+                                <button
+                                  onClick={() => handleDeclineInvitation(invitation.id)}
+                                  className="flex items-center gap-2 bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium hover:bg-slate-300 transition-colors text-sm"
+                                >
+                                  <XCircle size={16} />
+                                  Decline
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Accepted Invitations */}
+                  {invitations.filter(inv => inv.status === 'accepted').length > 0 && (
+                    <div className="mt-6">
+                      <h4 className="text-sm font-semibold text-slate-600 mb-3 flex items-center gap-2">
+                        <CheckCircle size={16} className="text-green-500" />
+                        Accepted
+                      </h4>
+                      <div className="space-y-2">
+                        {invitations.filter(inv => inv.status === 'accepted').map((invitation) => (
+                          <div
+                            key={invitation.id}
+                            className="bg-green-50 border border-green-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                          >
+                            <div>
+                              <h5 className="font-semibold text-slate-900">
+                                {invitation.course_title || `Course #${invitation.course_id}`}
+                              </h5>
+                              <p className="text-xs text-slate-500 mt-1">
+                                Accepted on {invitation.responded_at ? new Date(invitation.responded_at).toLocaleDateString() : 'N/A'}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => navigate(`/student/course/${invitation.course_id}`)}
+                              className="text-green-600 hover:text-green-700 font-medium text-sm flex items-center gap-1"
+                            >
+                              Go to Course
+                              <Send size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Declined Invitations */}
+                  {invitations.filter(inv => inv.status === 'declined').length > 0 && (
+                    <div className="mt-6">
+                      <h4 className="text-sm font-semibold text-slate-600 mb-3 flex items-center gap-2">
+                        <XCircle size={16} className="text-red-500" />
+                        Declined
+                      </h4>
+                      <div className="space-y-2">
+                        {invitations.filter(inv => inv.status === 'declined').map((invitation) => (
+                          <div
+                            key={invitation.id}
+                            className="bg-slate-50 border border-slate-200 rounded-xl p-4"
+                          >
+                            <div>
+                              <h5 className="font-semibold text-slate-500">
+                                {invitation.course_title || `Course #${invitation.course_id}`}
+                              </h5>
+                              <p className="text-xs text-slate-400 mt-1">
+                                Declined on {invitation.responded_at ? new Date(invitation.responded_at).toLocaleDateString() : 'N/A'}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </main>
