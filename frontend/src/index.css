@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Learn Sphere Color System */
+:root {
+  --inactive: #d1d5db;
+  --active: #702963;
+  --active-glow: rgba(112, 41, 99, 0.55);
+}
+
 /* Custom base styles */
 @layer base {
   html {

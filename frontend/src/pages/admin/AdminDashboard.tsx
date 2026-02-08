@@ -87,7 +87,11 @@ const AdminDashboard: React.FC = () => {
 
                 <div className="flex items-center gap-4 sm:gap-6">
                     <div className="hidden sm:flex items-center gap-4">
-                        <div className="flex items-center gap-3">
+                        <div 
+                            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => navigate('/admin/settings')}
+                            title="Go to Settings"
+                        >
                             <div className="text-right hidden lg:block">
                                 <p className="text-sm font-bold text-gray-900 leading-none">{user?.name || 'Admin User'}</p>
                                 <p className="text-[10px] text-gray-500 font-medium">Administrator</p>
@@ -144,7 +148,13 @@ const AdminDashboard: React.FC = () => {
                         ))}
                     </nav>
                     <div className="border-t border-gray-100 p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                        <div 
+                            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => {
+                                setIsMobileMenuOpen(false);
+                                navigate('/admin/settings');
+                            }}
+                        >
                             <img
                                 src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin"
                                 alt="Admin"

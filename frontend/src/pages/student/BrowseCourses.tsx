@@ -239,10 +239,10 @@ export default function BrowseCourses() {
         <div className="mb-6 sm:mb-8">
           <button
             onClick={() => navigate('/student/dashboard')}
-            className="flex items-center gap-2 text-slate-500 hover:text-purple-600 transition-colors mb-4"
+            className="flex items-center gap-2 text-[var(--inactive)] hover:text-[var(--active)] transition-colors mb-4 font-medium"
           >
             <ArrowLeft size={18} />
-            <span className="font-medium">Back to Dashboard</span>
+            <span>Back to Dashboard</span>
           </button>
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 mb-2">Browse Courses</h1>
           <p className="text-slate-600 text-sm sm:text-base">Discover and enroll in courses to start learning</p>
