@@ -296,7 +296,7 @@ const CourseOverview: React.FC = () => {
                         <div className="bg-[#7E2259] p-1.5 rounded-lg transition-transform hover:scale-105">
                             <GraduationCap className="text-white w-6 h-6" />
                         </div>
-                        <span className="text-xl font-bold text-[#7E2259] tracking-tight">LearnSphere</span>
+                        <span className="text-xl font-bold text-[#7E2259] tracking-tight">Learn Sphere</span>
                     </div>
 
                     <div className="flex items-center gap-6">
@@ -654,7 +654,7 @@ const CourseOverview: React.FC = () => {
             {/* Footer */}
             <footer className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center border-t border-slate-200 mt-8">
                 <p className="text-sm text-slate-400">
-                    © 2024 LearnSphere Inc. All rights reserved.
+                    © 2026 Learn Sphere. All rights reserved.
                 </p>
             </footer>
         </div>
